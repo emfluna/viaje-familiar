@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
-import { Expense, Friend, TripDay } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Expense, Friend, TripDay, Currency, CURRENCY_SYMBOLS } from '../types';
 import { 
   DollarSign, 
   Search, 
@@ -28,6 +28,7 @@ interface ExpensesPanelProps {
   onAddExpenseClick: () => void;
   onEditExpense: (expense: Expense) => void;
   onDeleteExpense: (id: string) => void;
+  currency: Currency;
 }
 
 export default function ExpensesPanel({
@@ -39,9 +40,17 @@ export default function ExpensesPanel({
   onAddExpenseClick,
   onEditExpense,
   onDeleteExpense,
+  currency,
 }: ExpensesPanelProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  // Reset page when dynamic filters update
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedCategory, selectedDayId]);
 
   const getFriendName = (id: string) => {
     const friend = friends.find((f) => f.id === id);
@@ -111,6 +120,12 @@ export default function ExpensesPanel({
     
     return matchSearch;
   });
+
+  const totalPages = Math.ceil(filteredExpenses.length / itemsPerPage);
+  const paginatedExpenses = filteredExpenses.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   return (
     <div className="bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden flex flex-col h-full">
@@ -197,7 +212,7 @@ export default function ExpensesPanel({
             </div>
           ) : (
             <div className="space-y-3">
-              {filteredExpenses.map((exp) => {
+              {paginatedExpenses.map((exp) => {
                 const payer = getFriendObj(exp.payerId);
                 const { emoji, label } = getCategoryEmojiAndLabel(exp.category);
                 
@@ -253,10 +268,10 @@ export default function ExpensesPanel({
                               <span
                                 key={split.friendId}
                                 className="bg-slate-50 border border-slate-200/50 px-1.5 py-0.5 rounded-md text-[9.5px] font-mono text-slate-600 inline-flex items-center gap-0.5"
-                                title={`${splitFriend?.name}: ${split.amount.toFixed(2)} €`}
+                               title={`${splitFriend?.name}: ${CURRENCY_SYMBOLS[currency]} ${split.amount.toFixed(2)}`}
                               >
                                 <span>{splitFriend?.avatarEmoji || '👤'}</span>
-                                <span className="font-bold">{split.amount.toFixed(2)} €</span>
+                                <span className="font-bold">{CURRENCY_SYMBOLS[currency]} {split.amount.toFixed(2)}</span>
                               </span>
                             );
                           })}
@@ -276,7 +291,7 @@ export default function ExpensesPanel({
                       <div className="font-mono text-right">
                         <span className="text-xs text-slate-400 font-medium block">Total</span>
                         <span className="text-base font-black text-slate-800">
-                          {exp.amount.toFixed(2)} €
+                          {CURRENCY_SYMBOLS[currency]} {exp.amount.toFixed(2)}
                         </span>
                       </div>
 
@@ -315,6 +330,52 @@ export default function ExpensesPanel({
           )}
         </AnimatePresence>
       </div>
+
+      {/* Pagination controls footer for "Hojas de 5 en 5" */}
+      {totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-slate-50 border-t border-slate-100 shrink-0">
+          <div className="text-[11px] font-bold text-slate-505 tracking-wide">
+            Mostrando <span className="text-slate-800">{(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredExpenses.length)}</span> de <span className="text-slate-800">{filteredExpenses.length}</span> registros
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className={`px-2.5 py-1 text-[10px] font-extrabold uppercase rounded-lg border transition-all cursor-pointer ${
+                currentPage === 1
+                  ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'
+                  : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+              }`}
+            >
+              ◀ Ant.
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pg) => (
+              <button
+                key={pg}
+                onClick={() => setCurrentPage(pg)}
+                className={`w-6 h-6 text-[10px] font-bold rounded-lg border transition-all cursor-pointer ${
+                  currentPage === pg
+                    ? 'bg-slate-800 text-white border-slate-800'
+                    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                }`}
+              >
+                {pg}
+              </button>
+            ))}
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className={`px-2.5 py-1 text-[10px] font-extrabold uppercase rounded-lg border transition-all cursor-pointer ${
+                currentPage === totalPages
+                  ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'
+                  : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+              }`}
+            >
+              Sig. ▶
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

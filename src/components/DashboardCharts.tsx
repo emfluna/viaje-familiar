@@ -4,12 +4,13 @@
  */
 
 import React from 'react';
-import { Expense, Friend } from '../types';
+import { Expense, Friend, Currency, CURRENCY_SYMBOLS } from '../types';
 import { Tag, TrendingUp, Compass, Landmark } from 'lucide-react';
 
 interface DashboardChartsProps {
   expenses: Expense[];
   friends: Friend[];
+  currency: Currency;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -28,7 +29,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   otros: 'Recuerdos y Compras 📦',
 };
 
-export default function DashboardCharts({ expenses, friends }: DashboardChartsProps) {
+export default function DashboardCharts({ expenses, friends, currency }: DashboardChartsProps) {
   // Filter out payments
   const nonSettlementExpenses = expenses.filter((e) => !e.isSettlement);
   const totalSpent = nonSettlementExpenses.reduce((sum, e) => sum + e.amount, 0);
@@ -81,7 +82,7 @@ export default function DashboardCharts({ expenses, friends }: DashboardChartsPr
           <Tag className="w-5 h-5 text-teal-650" />
           <div>
             <h4 className="font-semibold text-slate-800 text-sm font-display">Gastos de Viaje por Categoría</h4>
-            <p className="text-xs text-slate-400">Distribución del presupuesto (Suma: {totalSpent.toFixed(2)} €)</p>
+            <p className="text-xs text-slate-400">Distribución del presupuesto (Suma: {CURRENCY_SYMBOLS[currency]} {totalSpent.toFixed(2)})</p>
           </div>
         </div>
 
@@ -98,7 +99,7 @@ export default function DashboardCharts({ expenses, friends }: DashboardChartsPr
                   <div className="flex items-center justify-between text-xs font-medium text-slate-650">
                     <span className="text-slate-700 font-semibold">{cat.label}</span>
                     <span className="font-mono text-slate-600 font-bold">
-                      {cat.amount.toFixed(2)} € ({cat.pct.toFixed(0)}%)
+                      {CURRENCY_SYMBOLS[currency]} {cat.amount.toFixed(2)} ({cat.pct.toFixed(0)}%)
                     </span>
                   </div>
                   {/* Progress bar */}
@@ -145,7 +146,7 @@ export default function DashboardCharts({ expenses, friends }: DashboardChartsPr
                     <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
                       <span className="truncate">{contrib.name}</span>
                       <span className="font-mono text-slate-800 font-bold shrink-0">
-                        {contrib.amount.toFixed(2)} €
+                        {CURRENCY_SYMBOLS[currency]} {contrib.amount.toFixed(2)}
                       </span>
                     </div>
 

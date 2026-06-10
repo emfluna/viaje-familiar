@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Expense, Friend, Debt } from '../types';
+import { Expense, Friend, Debt, Currency, CURRENCY_SYMBOLS } from '../types';
 import { calculateBalances, simplifyDebts } from '../utils/debts';
 import { 
   DollarSign, 
@@ -25,6 +25,7 @@ interface SettleUpPanelProps {
   friends: Friend[];
   onSettleDebt: (fromId: string, toId: string, amount: number) => void;
   currentUserId: string;
+  currency: Currency;
 }
 
 export default function SettleUpPanel({
@@ -32,6 +33,7 @@ export default function SettleUpPanel({
   friends,
   onSettleDebt,
   currentUserId,
+  currency,
 }: SettleUpPanelProps) {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -45,7 +47,7 @@ export default function SettleUpPanel({
     onSettleDebt(fromId, toId, amount);
     const fromName = getFriendObj(fromId)?.name || 'Viajero';
     const toName = getFriendObj(toId)?.name || 'Viajero';
-    setSuccessMsg(`¡Pago registrado! ${fromName} saldó ${amount.toFixed(2)} € con ${toName}`);
+    setSuccessMsg(`¡Pago registrado! ${fromName} saldó ${CURRENCY_SYMBOLS[currency]} ${amount.toFixed(2)} con ${toName}`);
     setTimeout(() => {
       setSuccessMsg(null);
     }, 4000);
@@ -113,7 +115,7 @@ export default function SettleUpPanel({
 
                     <div className="text-right font-mono shrink-0">
                       <span className={`text-xs font-bold block ${isPositive ? 'text-emerald-700' : 'text-rose-600'}`}>
-                        {isPositive ? '+' : ''}{bal.toFixed(2)} €
+                        {isPositive ? '+' : ''}{CURRENCY_SYMBOLS[currency]} {bal.toFixed(2)}
                       </span>
                       <span className="text-[9px] text-slate-400 block font-semibold leading-none">
                         {isPositive ? 'Dinero a recibir' : 'Debe aportar'}
@@ -189,7 +191,7 @@ export default function SettleUpPanel({
                     <div className="flex items-center justify-between sm:justify-end gap-3.5 border-t sm:border-t-0 border-slate-100 pt-2 sm:pt-0 font-mono">
                       <div className="text-left sm:text-right">
                         <span className="text-[10px] text-slate-400 block font-semibold leading-none">Monto</span>
-                        <span className="text-sm font-black text-slate-800">{debt.amount.toFixed(2)} €</span>
+                        <span className="text-sm font-black text-slate-800">{CURRENCY_SYMBOLS[currency]} {debt.amount.toFixed(2)}</span>
                       </div>
 
                       <button

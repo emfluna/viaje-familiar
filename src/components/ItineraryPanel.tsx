@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { TripDay, TouristPlace } from '../types';
+import { TripDay, TouristPlace, Currency, CURRENCY_SYMBOLS } from '../types';
 import { 
   MapPin, 
   Map, 
@@ -16,39 +16,261 @@ import {
   DollarSign, 
   Smile,
   Compass,
-  Sparkles
+  Sparkles,
+  Calendar
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface ItineraryPanelProps {
+  days: TripDay[];
   selectedDay: TripDay | undefined;
   onToggleVisited: (dayId: string, placeId: string) => void;
   onAddPlace: (dayId: string, place: Omit<TouristPlace, 'id' | 'isVisited'>) => void;
   onRemovePlace: (dayId: string, placeId: string) => void;
+  currency: Currency;
+  onUpdateDayDate?: (dayId: string, newDate: string) => void;
 }
 
 export default function ItineraryPanel({
+  days,
   selectedDay,
   onToggleVisited,
   onAddPlace,
   onRemovePlace,
+  currency,
+  onUpdateDayDate,
 }: ItineraryPanelProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [timeOfDay, setTimeOfDay] = useState('10:00');
   const [estimatedCost, setEstimatedCost] = useState('0');
+  
+  // Location and map states
+  const [locationName, setLocationName] = useState('');
+  const [locationUrl, setLocationUrl] = useState('');
+
+  // State for AI recommendations per place id
+  const [aiRecommendations, setAiRecommendations] = useState<Record<string, { name: string; description: string; type: string }[]>>({});
+  const [loadingAi, setLoadingAi] = useState<Record<string, boolean>>({});
+  const [expandedRecommendations, setExpandedRecommendations] = useState<Record<string, boolean>>({});
+  const [aiErrors, setAiErrors] = useState<Record<string, string>>({});
+
+  const fetchAiRecommendations = async (placeId: string, placeName: string, locName?: string) => {
+    if (expandedRecommendations[placeId]) {
+      setExpandedRecommendations(prev => ({ ...prev, [placeId]: false }));
+      return;
+    }
+
+    setExpandedRecommendations(prev => ({ ...prev, [placeId]: true }));
+
+    if (aiRecommendations[placeId]) {
+      return;
+    }
+
+    setLoadingAi(prev => ({ ...prev, [placeId]: true }));
+    setAiErrors(prev => ({ ...prev, [placeId]: '' }));
+
+    // Fallback if offline
+    if (!navigator.onLine) {
+      setTimeout(() => {
+        const localRecs = [
+          {
+            name: `Mirador natural cerca de ${placeName}`,
+            description: "Un mirador espectacular sin filas, ideal para fotos y contemplar el paisaje regional.",
+            type: "Mirador 🌅"
+          },
+          {
+            name: `Café Boutique tradicional`,
+            description: "Acogedor rincón cercano con el mejor café local espresso y pastelería fina.",
+            type: "Comida ☕"
+          },
+          {
+            name: `Pasaje de Artesanos locales`,
+            description: "Tiendas típicas para comprar recuerdos auténticos y conocer artesanos de la zona.",
+            type: "Cercano 🛍️"
+          }
+        ];
+        setAiRecommendations(prev => ({ ...prev, [placeId]: localRecs }));
+        setLoadingAi(prev => ({ ...prev, [placeId]: false }));
+      }, 700);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/recommendations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          placeName,
+          locationName: locName || '',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Fallo al obtener sugerencias de la IA');
+      }
+
+      const data = await response.json();
+      setAiRecommendations(prev => ({ ...prev, [placeId]: data.recommendations || [] }));
+    } catch (err: any) {
+      console.error(err);
+      setAiErrors(prev => ({ ...prev, [placeId]: 'No se pudieron cargar recomendaciones en este momento.' }));
+    } finally {
+      setLoadingAi(prev => ({ ...prev, [placeId]: false }));
+    }
+  };
 
   if (!selectedDay) {
+    const allMappedPlaces = days.flatMap(d => d.touristPlaces).filter(p => !!p.locationName);
+    const totalPlaces = days.flatMap(d => d.touristPlaces).length;
+    const visitedPlaces = days.flatMap(d => d.touristPlaces).filter(p => p.isVisited).length;
+
+    // Construct full global multi-point Google Maps URL for all days
+    let globalMapsUrl = '';
+    if (allMappedPlaces.length > 0) {
+      if (allMappedPlaces.length === 1) {
+        globalMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(allMappedPlaces[0].locationName || '')}`;
+      } else {
+        const origin = allMappedPlaces[0].locationName || '';
+        const destination = allMappedPlaces[allMappedPlaces.length - 1].locationName || '';
+        const waypoints = allMappedPlaces
+          .slice(1, -1)
+          .map(p => p.locationName || '')
+          .join('|');
+        
+        globalMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`;
+        if (waypoints) {
+          globalMapsUrl += `&waypoints=${encodeURIComponent(waypoints)}`;
+        }
+      }
+    }
+
     return (
-      <div className="bg-slate-55/40 rounded-3xl p-6 border border-slate-100 flex flex-col items-center justify-center text-center py-12">
-        <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 mb-4 shadow-sm">
-          <Map className="w-7 h-7" />
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden flex flex-col h-full">
+        {/* Header */}
+        <div className="p-6 border-b border-slate-50 bg-gradient-to-br from-teal-50/30 to-indigo-50/15">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-teal-100/60 flex items-center justify-center text-teal-600 shadow-3xs">
+              <Compass className="w-6 h-6 text-teal-600" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-slate-850 text-base font-display leading-tight">
+                Resumen GPS y Hoja de Ruta del Viaje
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Consolidado de todas las atracciones turísticas y ubicaciones del viaje completo
+              </p>
+            </div>
+          </div>
         </div>
-        <h4 className="font-bold text-slate-700 text-sm">Resumen General del Viaje</h4>
-        <p className="text-xs text-slate-400 max-w-sm mt-1 leading-relaxed">
-          Haz clic en cualquier día específico en la barra lateral para ver su itinerario de lugares turísticos y añadir paradas de atracción del día.
-        </p>
+
+        <div className="p-5 space-y-5 flex-1 overflow-y-auto">
+          {/* Quick Metrics */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-slate-50/60 border border-slate-100 rounded-2xl p-3 flex flex-col justify-between">
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Duración</span>
+              <span className="text-sm font-black text-slate-700 font-display mt-0.5">{days.length} Días</span>
+            </div>
+            <div className="bg-slate-50/60 border border-slate-100 rounded-2xl p-3 flex flex-col justify-between">
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Atracciones</span>
+              <span className="text-sm font-black text-slate-700 font-display mt-0.5">{totalPlaces} Paradas</span>
+            </div>
+            <div className="bg-slate-50/60 border border-slate-100 rounded-2xl p-3 flex flex-col justify-between">
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Progreso Visitas</span>
+              <span className="text-sm font-black text-emerald-700 font-display mt-0.5">{visitedPlaces}/{totalPlaces}</span>
+            </div>
+          </div>
+
+          {/* GPS Route Consolidation */}
+          <div className="bg-gradient-to-br from-teal-50/20 via-indigo-50/15 to-white rounded-2xl p-4.5 border border-teal-100/50 space-y-4">
+            <div className="flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-teal-650" />
+              <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider font-display">Trazado Completo del Viaje en Carretera</h4>
+            </div>
+
+            {allMappedPlaces.length === 0 ? (
+              <p className="text-xs text-slate-450 italic leading-relaxed bg-white/70 p-4 rounded-xl border border-dashed border-slate-150">
+                Aún no has especificado una dirección exacta o ubicación física en tus atracciones turísticas. Añade direcciones a los lugares turísticos de tus días para trazar la ruta de viaje GPS en carretera.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-white border border-slate-105 rounded-xl p-3.5 space-y-3 shadow-3xs">
+                  <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-700 font-medium">
+                    {allMappedPlaces.map((place, idx) => (
+                      <React.Fragment key={place.id}>
+                        {idx > 0 && <span className="text-slate-300 font-bold shrink-0">➔</span>}
+                        <span className="px-2.5 py-1 bg-slate-50 border border-slate-200/60 rounded-lg text-[10px] font-bold flex items-center gap-1">
+                          <span className="text-teal-650">#{idx + 1}</span>
+                          <span className="truncate max-w-[125px]">{place.name}</span>
+                          <span className="text-slate-400 text-[9px] font-normal">({place.locationName})</span>
+                        </span>
+                      </React.Fragment>
+                    ))}
+                  </div>
+
+                  <div className="bg-teal-50/40 p-3 rounded-lg border border-teal-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3">
+                    <p className="text-[11px] text-slate-600 font-medium leading-relaxed max-w-md">
+                      📍 <b>¡Ruta Consolidada Lista!</b> Tienes un total de <b>{allMappedPlaces.length} paradas GPS registradas</b> en el itinerario. Pulsa el botón de abajo para lanzar el enlace dinámico integrado de Google Maps con la secuencia de viaje optimizada.
+                    </p>
+                    
+                    <a
+                      href={globalMapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer"
+                    >
+                      <MapPin className="w-4 h-4" />
+                      Lanzar Mapa GPS Consolidado 🌐
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Sequential Day-by-Day Breakdown Summary */}
+          <div className="space-y-3">
+            <h4 className="font-bold text-slate-700 text-xs uppercase tracking-wider font-display">Itinerario General por Días</h4>
+            
+            <div className="space-y-2.5">
+              {days.map((day) => (
+                <div key={day.id} className="border border-slate-105 rounded-2xl p-4 bg-white hover:border-slate-200 transition-colors shadow-3xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800 font-display">
+                      Día {day.dayNumber} — {day.date}
+                    </span>
+                    <span className="text-[10px] font-bold bg-slate-100 text-slate-550 rounded-md px-2 py-0.5">
+                      {day.touristPlaces.length} lugares
+                    </span>
+                  </div>
+
+                  {day.touristPlaces.length === 0 ? (
+                    <p className="text-[11px] text-slate-400 italic mt-1.5 px-1">Sin visitas registradas todavía para este día de viaje.</p>
+                  ) : (
+                    <div className="mt-2 pl-3 border-l-2 border-teal-500/50 space-y-2">
+                      {day.touristPlaces.map((pl) => (
+                        <div key={pl.id} className="flex items-center justify-between gap-2 text-xs">
+                          <span className={`font-semibold ${pl.isVisited ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
+                            • [{pl.timeOfDay}] {pl.name}
+                          </span>
+                          {pl.locationName && (
+                            <span className="text-[10px] text-teal-600 font-bold bg-teal-50 px-1.5 py-0.5 rounded-md flex items-center gap-0.5 shrink-0">
+                              <MapPin className="w-2.5 h-2.5" />
+                              {pl.locationName}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -62,12 +284,16 @@ export default function ItineraryPanel({
       description: description.trim(),
       timeOfDay: timeOfDay || 'Todo el día',
       estimatedCost: parseFloat(estimatedCost) || 0,
+      locationName: locationName.trim(),
+      locationUrl: locationUrl.trim(),
     });
 
     setName('');
     setDescription('');
     setTimeOfDay('10:00');
     setEstimatedCost('0');
+    setLocationName('');
+    setLocationUrl('');
     setShowAddForm(false);
   };
 
@@ -79,7 +305,7 @@ export default function ItineraryPanel({
   return (
     <div className="bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden flex flex-col h-full">
       {/* Header */}
-      <div className="p-5 border-b border-slate-50 bg-gradient-to-br from-teal-50/20 to-indigo-50/10 flex items-center justify-between">
+      <div className="p-5 border-b border-slate-50 bg-gradient-to-br from-teal-50/20 to-indigo-50/10 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-teal-100/50 flex items-center justify-center text-teal-600">
             <Compass className="w-5 h-5 text-teal-600" />
@@ -88,9 +314,22 @@ export default function ItineraryPanel({
             <h3 className="font-bold text-slate-800 text-sm font-display leading-tight">
               Recorrido Turístico — Día {selectedDay.dayNumber}
             </h3>
-            <p className="text-[11px] text-slate-400">
-              Lugares, monumentos y paradas programadas para el {selectedDay.date}
-            </p>
+            
+            <div className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+              <span>Fecha del Día:</span>
+              <input
+                id={`input-day-date-${selectedDay.id}`}
+                type="date"
+                title="Editar fecha para este día de viaje"
+                className="px-2 py-0.5 border border-slate-200 hover:border-teal-400 rounded-md focus:ring-1 focus:ring-teal-500 focus:outline-none bg-white text-[11px] font-semibold text-teal-800 cursor-pointer transition-colors"
+                value={selectedDay.date}
+                onChange={(e) => {
+                  if (onUpdateDayDate && e.target.value) {
+                    onUpdateDayDate(selectedDay.id, e.target.value);
+                  }
+                }}
+              />
+            </div>
           </div>
         </div>
 
@@ -110,10 +349,93 @@ export default function ItineraryPanel({
           <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
             Presupuesto Actividades Estimado
           </div>
-          <div className="font-mono text-xs font-black text-slate-700 bg-white py-1 px-2.5 rounded-lg border border-slate-100 shadow-2xs">
-            {totalBudgetForSights.toFixed(2)} €
+          <div className="font-mono text-xs font-black text-slate-705 bg-white py-1 px-2.5 rounded-lg border border-slate-100 shadow-2xs">
+            {CURRENCY_SYMBOLS[currency]} {totalBudgetForSights.toFixed(2)}
           </div>
         </div>
+
+        {/* GPS Route summary card for Single Day */}
+        {selectedDay.touristPlaces.length > 0 && (
+          <div className="bg-gradient-to-br from-indigo-50/20 via-teal-50/15 to-white rounded-2xl p-4 border border-teal-100/40 shadow-3xs space-y-3 animate-fade-in">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 bg-teal-100/40 text-teal-600 rounded-lg flex items-center justify-center">
+                <Map className="w-4 h-4 text-teal-605" />
+              </div>
+              <div>
+                <h4 className="font-bold text-slate-800 text-[11px] uppercase tracking-wider font-display">Ruta GPS del Día</h4>
+                <p className="text-[10px] text-slate-400 font-medium">Secuencia de visitas turísticas para hoy</p>
+              </div>
+            </div>
+
+            <div className="bg-white border border-slate-100 rounded-xl p-3 space-y-2.5">
+              <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-750 font-semibold">
+                {selectedDay.touristPlaces.map((place, idx) => {
+                  const hasLoc = !!place.locationName;
+                  return (
+                    <React.Fragment key={place.id}>
+                      {idx > 0 && <span className="text-slate-300 font-bold shrink-0">➔</span>}
+                      <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all ${
+                        hasLoc 
+                          ? 'bg-teal-50 text-teal-850 hover:bg-teal-100/80 border border-teal-100/50' 
+                          : 'bg-slate-50 text-slate-500 border border-slate-100'
+                      }`}>
+                        <span>{idx + 1}.</span>
+                        <span className="truncate max-w-[120px]">{place.name}</span>
+                        {hasLoc && <MapPin className="w-2.5 h-2.5 text-teal-650" />}
+                      </span>
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+
+              {(() => {
+                const mappedPlaces = selectedDay.touristPlaces.filter(p => !!p.locationName);
+                if (mappedPlaces.length === 0) {
+                  return (
+                    <p className="text-[10px] text-slate-450 italic leading-snug">
+                      💡 <b>Tip de Ruta:</b> Añade una "Ubicación física / Ciudad" en el formulario del lugar para habilitar el trazado automático de carreteras GPS y mapas del día.
+                    </p>
+                  );
+                }
+
+                let dayMapsUrl = '';
+                if (mappedPlaces.length === 1) {
+                  dayMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mappedPlaces[0].locationName || '')}`;
+                } else {
+                  const origin = mappedPlaces[0].locationName || '';
+                  const destination = mappedPlaces[mappedPlaces.length - 1].locationName || '';
+                  const waypoints = mappedPlaces
+                    .slice(1, -1)
+                    .map(p => p.locationName || '')
+                    .join('|');
+                  
+                  dayMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`;
+                  if (waypoints) {
+                    dayMapsUrl += `&waypoints=${encodeURIComponent(waypoints)}`;
+                  }
+                }
+
+                return (
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2.5 border-t border-slate-100/80">
+                    <div className="text-[10px] text-slate-550 leading-none">
+                      Secuencia con <span className="font-bold text-teal-700">{mappedPlaces.length} ubicaciones</span> geolocalizables.
+                    </div>
+                    
+                    <a
+                      href={dayMapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-gradient-to-r from-teal-600 to-indigo-600 hover:from-teal-700 hover:to-indigo-700 text-white font-black text-[10px] rounded-lg shadow-sm transition-all cursor-pointer"
+                    >
+                      <MapPin className="w-3 h-3 select-none" />
+                      Navegar Ruta GPS del Día 🗺
+                    </a>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        )}
 
         {/* Create Place Form inline */}
         {showAddForm && (
@@ -166,20 +488,46 @@ export default function ItineraryPanel({
                   <input
                     type="text"
                     placeholder="Ej: 10:00 | Atardecer"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-teal-500 focus:outline-none bg-white"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-teal-500 focus:outline-none bg-white font-medium"
                     value={timeOfDay}
                     onChange={(e) => setTimeOfDay(e.target.value)}
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] font-bold text-slate-400 uppercase">Gasto Estimado (€)</label>
+                  <label className="text-[9px] font-bold text-slate-400 uppercase">Gasto Estimado ({CURRENCY_SYMBOLS[currency]})</label>
                   <input
                     type="number"
                     step="any"
                     placeholder="Ej: 15"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-teal-500 focus:outline-none bg-white font-mono"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-teal-500 focus:outline-none bg-white font-mono font-semibold"
                     value={estimatedCost}
                     onChange={(e) => setEstimatedCost(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Map Location and Google Maps search queries linking */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-dashed border-teal-100">
+                <div>
+                  <label className="text-[9px] font-bold text-slate-450 uppercase">Ubicación física / Ciudad</label>
+                  <input
+                    id="map-loc-name"
+                    type="text"
+                    placeholder="Ej: Machu Picchu, Cusco"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-teal-500 focus:outline-none bg-white text-xs text-slate-700"
+                    value={locationName}
+                    onChange={(e) => setLocationName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-bold text-slate-450 uppercase">Google Maps Link (Opcional)</label>
+                  <input
+                    id="map-loc-url"
+                    type="text"
+                    placeholder="Ej: https://maps.app.goo.gl/..."
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-teal-500 focus:outline-none bg-white text-xs text-teal-800"
+                    value={locationUrl}
+                    onChange={(e) => setLocationUrl(e.target.value)}
                   />
                 </div>
               </div>
@@ -256,17 +604,113 @@ export default function ItineraryPanel({
                   )}
 
                   {/* Metadata line */}
-                  <div className="flex items-center gap-3 pt-1 text-[10px] font-medium text-slate-400">
+                  <div className="flex flex-wrap items-center gap-3 pt-1 text-[10px] font-medium text-slate-450">
                     <span className="flex items-center gap-1 font-mono">
                       <Clock className="w-3 h-3 text-slate-350" />
                       {place.timeOfDay || 'Cualquier hora'}
                     </span>
                     {place.estimatedCost > 0 && (
-                      <span className="flex items-center gap-0.5 font-mono text-emerald-700 bg-emerald-50 py-0.5 px-2 rounded-md">
-                        <DollarSign className="w-2.5 h-2.5" />
-                        {place.estimatedCost.toFixed(2)} € est.
+                      <span className="flex items-center gap-0.5 font-mono text-teal-800 bg-teal-50 py-0.5 px-2 rounded-md font-bold shadow-3xs">
+                        {CURRENCY_SYMBOLS[currency]} {place.estimatedCost.toFixed(2)} est.
                       </span>
                     )}
+
+                    {/* DYNAMIC MAP PIN AND LINKING EXPERIENCES */}
+                    {place.locationName && (
+                      <div className="flex items-center gap-1.5 text-slate-600 bg-slate-100/80 py-0.5 px-2 rounded-md max-w-xs truncate border border-slate-150 shadow-3xs">
+                        <MapPin className="w-3 h-3 text-teal-605 shrink-0" />
+                        <span className="truncate max-w-[120px]">{place.locationName}</span>
+                        <a
+                          href={place.locationUrl && place.locationUrl.trim() ? place.locationUrl : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.locationName)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-teal-600 hover:text-teal-800 font-extrabold hover:underline ml-1 inline-flex items-center gap-0.5 shrink-0"
+                          title="Ver dirección exacta en Google Maps"
+                        >
+                          Mapa 🌐
+                        </a>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* AI RECOMMENDATION EXPANDABLE BLOCK */}
+                  <div className="mt-3 pt-3 border-t border-slate-100/60">
+                    <button
+                      id={`btn-ai-spots-${place.id}`}
+                      type="button"
+                      onClick={() => fetchAiRecommendations(place.id, place.name, place.locationName)}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-indigo-50/70 hover:bg-indigo-100/80 text-indigo-750 hover:text-indigo-850 text-[10px] font-bold rounded-xl border border-indigo-100/65 transition-all cursor-pointer shadow-3xs"
+                    >
+                      <Sparkles className="w-3 h-3 text-indigo-600 shrink-0" />
+                      <span>{expandedRecommendations[place.id] ? 'Ocultar atracciones recomendadas por IA' : '✨ Lugares que podría conocer cerca según IA'}</span>
+                    </button>
+
+                    <AnimatePresence>
+                      {expandedRecommendations[place.id] && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="overflow-hidden mt-2.5"
+                        >
+                          {loadingAi[place.id] ? (
+                            <div className="py-4 flex flex-col items-center justify-center gap-1.5 bg-slate-50/50 rounded-2xl border border-slate-100 ml-1">
+                              <div className="w-4.5 h-4.5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                              <span className="text-[10px] text-slate-400 font-bold animate-pulse">
+                                Consultando a Gemini sobre atractivos cercanos...
+                              </span>
+                            </div>
+                          ) : aiErrors[place.id] ? (
+                            <div className="p-2.5 text-[10px] text-rose-500 bg-rose-50/60 rounded-xl border border-rose-100 font-medium ml-1">
+                              ⚠️ {aiErrors[place.id]}
+                            </div>
+                          ) : aiRecommendations[place.id] && aiRecommendations[place.id].length > 0 ? (
+                            <div className="space-y-2 ml-1">
+                              <p className="text-[9px] text-indigo-600/90 font-extrabold uppercase tracking-wide px-1">
+                                🌟 RECOMENDADOS CERCA DE {place.name.toUpperCase()}:
+                              </p>
+                              
+                              <div className="grid grid-cols-1 gap-2">
+                                {aiRecommendations[place.id].map((rec, rIdx) => (
+                                  <div 
+                                    key={rIdx} 
+                                    className="bg-gradient-to-br from-indigo-50/15 to-white hover:from-indigo-50/25 border border-indigo-100/35 hover:border-indigo-100/70 rounded-xl p-2.5 transition-all flex items-start justify-between gap-2.5"
+                                  >
+                                    <div className="space-y-0.5 min-w-0">
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        <span className="text-[11px] font-bold text-slate-800">
+                                          {rec.name}
+                                        </span>
+                                        <span className="text-[8px] bg-indigo-50 text-indigo-700 font-bold px-1.5 py-0.2 rounded-md border border-indigo-100/50 uppercase tracking-widest shrink-0">
+                                          {rec.type || 'CERCANO'}
+                                        </span>
+                                      </div>
+                                      <p className="text-[10px] text-slate-500 leading-normal font-normal">
+                                        {rec.description}
+                                      </p>
+                                    </div>
+
+                                    <a
+                                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(rec.name + ' ' + (place.locationName || ''))}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="px-2 py-1 bg-white border border-slate-150 hover:bg-indigo-50 hover:border-indigo-150 text-[9px] text-indigo-700 hover:text-indigo-805 font-bold rounded-lg transition-colors shadow-4xs cursor-pointer shrink-0"
+                                      title="Buscar en Google Maps"
+                                    >
+                                      Ubicación 🌍
+                                    </a>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="p-3 text-[10px] italic text-slate-400 bg-slate-50 rounded-xl border border-slate-100 text-center ml-1">
+                              No se encontraron sugerencias IA adicionales para esta ubicación.
+                            </div>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </div>
               </div>

@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Friend, TripDay, Expense, TouristPlace } from './types';
+import { Friend, TripDay, Expense, TouristPlace, Currency, CURRENCY_SYMBOLS } from './types';
 import { getSavedState, saveState, INITIAL_FRIENDS, INITIAL_DAYS, INITIAL_EXPENSES } from './data';
 import TravelHeader from './components/TravelHeader';
 import Sidebar from './components/Sidebar';
@@ -13,6 +13,7 @@ import ExpensesPanel from './components/ExpensesPanel';
 import SettleUpPanel from './components/SettleUpPanel';
 import DashboardCharts from './components/DashboardCharts';
 import ExpenseModal from './components/ExpenseModal';
+import EmergencyDocumentsPanel from './components/EmergencyDocumentsPanel';
 import { 
   Compass, 
   Wallet, 
@@ -21,14 +22,15 @@ import {
   MapPin, 
   RefreshCw,
   Sparkles,
-  Info
+  Info,
+  ShieldAlert
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const PALETTE = [
   'bg-emerald-500', 'bg-teal-500', 'bg-cyan-500', 
-  'bg-indigo-505', 'bg-violet-500', 'bg-rose-500', 
-  'bg-pink-500', 'bg-amber-500', 'bg-orange-500'
+  'bg-indigo-500', 'bg-violet-500', 'bg-rose-500', 
+  'bg-pink-500', 'bg-amber-500', 'bg-orange-500', 'bg-blue-500'
 ];
 
 export default function App() {
@@ -37,13 +39,33 @@ export default function App() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string>('u_1');
   const [selectedDayId, setSelectedDayId] = useState<string>('all'); // "all" or specific day ID
+  const [currency, setCurrency] = useState<Currency>('BRL');
+  const [budgetLimit, setBudgetLimit] = useState<number>(1200);
+  const [isOffline, setIsOffline] = useState<boolean>(false);
 
   // Active workspace tab for general viewing
-  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<'itinerary' | 'charts'>('itinerary');
+  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<'itinerary' | 'charts' | 'documents'>('itinerary');
 
   // Modal controls
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+
+  // Monitor connection states
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    // Initial value
+    setIsOffline(!navigator.onLine);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Load state on mount
   useEffect(() => {
@@ -52,6 +74,10 @@ export default function App() {
     setDays(saved.days);
     setExpenses(saved.expenses);
     setCurrentUserId(saved.currentUserId);
+    setCurrency(saved.currency);
+    if ('budgetLimit' in saved) {
+      setBudgetLimit(saved.budgetLimit);
+    }
   }, []);
 
   // Central state update + safe localStorage syncing
@@ -59,13 +85,17 @@ export default function App() {
     updatedFriends: Friend[],
     updatedDays: TripDay[],
     updatedExpenses: Expense[],
-    updatedUserId: string
+    updatedUserId: string,
+    updatedCurrency: Currency = currency,
+    updatedBudgetLimit: number = budgetLimit
   ) => {
     setFriends(updatedFriends);
     setDays(updatedDays);
     setExpenses(updatedExpenses);
     setCurrentUserId(updatedUserId);
-    saveState(updatedFriends, updatedDays, updatedExpenses, updatedUserId);
+    setCurrency(updatedCurrency);
+    setBudgetLimit(updatedBudgetLimit);
+    saveState(updatedFriends, updatedDays, updatedExpenses, updatedUserId, updatedCurrency, updatedBudgetLimit);
   };
 
   // Add a brand new sequentially numbered day
@@ -83,8 +113,8 @@ export default function App() {
   };
 
   // Add friend/partner to the journey
-  const handleAddFriend = (name: string, emoji: string) => {
-    const avatarColor = PALETTE[Math.floor(Math.random() * PALETTE.length)];
+  const handleAddFriend = (name: string, emoji: string, customColor?: string) => {
+    const avatarColor = customColor || PALETTE[Math.floor(Math.random() * PALETTE.length)];
     const newFriend: Friend = {
       id: `u_${Date.now()}`,
       name,
@@ -93,6 +123,58 @@ export default function App() {
     };
     const nextFriends = [...friends, newFriend];
     updateStateAndSave(nextFriends, days, expenses, currentUserId);
+  };
+
+  // Edit friend details
+  const handleEditFriend = (id: string, name: string, emoji: string, customColor?: string) => {
+    const nextFriends = friends.map((f) => {
+      if (f.id === id) {
+        return { ...f, name, avatarEmoji: emoji, avatarColor: customColor || f.avatarColor };
+      }
+      return f;
+    });
+    updateStateAndSave(nextFriends, days, expenses, currentUserId);
+  };
+
+  // Update specific friend properties (airline codes, file uploads for emergency, etc)
+  const handleUpdateFriend = (id: string, updatedFields: Partial<Friend>) => {
+    const nextFriends = friends.map((f) => {
+      if (f.id === id) {
+        return { ...f, ...updatedFields };
+      }
+      return f;
+    });
+    updateStateAndSave(nextFriends, days, expenses, currentUserId);
+  };
+
+  // Delete a travel companion
+  const handleDeleteFriend = (id: string) => {
+    if (friends.length <= 1) return; // Cannot delete the last remaining member
+    const nextFriends = friends.filter((f) => f.id !== id);
+    const nextUserId = currentUserId === id ? (nextFriends[0]?.id || '') : currentUserId;
+
+    const nextExpenses = expenses.map((exp) => {
+      const nextSplits = exp.splits.filter((s) => s.friendId !== id);
+      return { ...exp, splits: nextSplits };
+    }).map((exp) => {
+      if (exp.payerId === id) {
+        return { ...exp, payerId: nextUserId };
+      }
+      return exp;
+    });
+    
+    updateStateAndSave(nextFriends, days, nextExpenses, nextUserId);
+  };
+
+  // Update trip day date
+  const handleUpdateDayDate = (dayId: string, newDate: string) => {
+    const nextDays = days.map((d) => {
+      if (d.id === dayId) {
+        return { ...d, date: newDate };
+      }
+      return d;
+    });
+    updateStateAndSave(friends, nextDays, expenses, currentUserId);
   };
 
   // Toggle tourist spot as visited
@@ -195,7 +277,7 @@ export default function App() {
         { friendId: toId, amount }, // Creditor gains the split credit
       ],
       isSettlement: true,
-      notes: `Liquidación directa de cuentas del viaje. ${debtorName} transfirió un total de ${amount.toFixed(2)} € a ${creditorName}.`,
+      notes: `Liquidación directa de cuentas del viaje. ${debtorName} transfirió un total de ${CURRENCY_SYMBOLS[currency]} ${amount.toFixed(2)} a ${creditorName}.`,
     };
 
     const nextExpenses = [settlementExpense, ...expenses];
@@ -220,8 +302,15 @@ export default function App() {
       <TravelHeader
         friends={friends}
         currentUserId={currentUserId}
-        onUserChange={setCurrentUserId}
+        onUserChange={(userId) => updateStateAndSave(friends, days, expenses, userId)}
         expenses={expenses}
+        currency={currency}
+        onCurrencyChange={(curr) => updateStateAndSave(friends, days, expenses, currentUserId, curr)}
+        budgetLimit={budgetLimit}
+        onBudgetLimitChange={(limit) => updateStateAndSave(friends, days, expenses, currentUserId, currency, limit)}
+        isOffline={isOffline}
+        onAddFriend={handleAddFriend}
+        onDeleteFriend={handleDeleteFriend}
       />
 
       {/* Main app panel */}
@@ -232,10 +321,21 @@ export default function App() {
           days={days}
           friends={friends}
           selectedDayId={selectedDayId}
-          onSelectDay={setSelectedDayId}
+          onSelectDay={(id) => {
+            setSelectedDayId(id);
+            setActiveWorkspaceTab('itinerary');
+          }}
           onAddDay={handleAddDay}
           onAddFriend={handleAddFriend}
+          onEditFriend={handleEditFriend}
+          onDeleteFriend={handleDeleteFriend}
+          onUpdateDayDate={handleUpdateDayDate}
           currentUserId={currentUserId}
+          expenses={expenses}
+          currency={currency}
+          budgetLimit={budgetLimit}
+          onBudgetLimitChange={(limit) => updateStateAndSave(friends, days, expenses, currentUserId, currency, limit)}
+          isOffline={isOffline}
         />
 
         {/* Core Screen Space Dashboard */}
@@ -269,6 +369,19 @@ export default function App() {
                 <TrendingUp className="w-4 h-4" />
                 <span>Estadísticas y Análisis 📈</span>
               </button>
+
+              <button
+                id="tab-documents"
+                onClick={() => setActiveWorkspaceTab('documents')}
+                className={`flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
+                  activeWorkspaceTab === 'documents'
+                    ? 'bg-white text-teal-800 shadow-3xs border border-slate-100'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <ShieldAlert className="w-4 h-4 text-rose-500" />
+                <span>Check-In y Documentos de Emergencia ✈️</span>
+              </button>
             </div>
 
             <button
@@ -294,13 +407,16 @@ export default function App() {
                   transition={{ duration: 0.15 }}
                 >
                   <ItineraryPanel
+                    days={days}
                     selectedDay={activeDayObj}
                     onToggleVisited={handleToggleVisited}
                     onAddPlace={handleAddPlace}
                     onRemovePlace={handleRemovePlace}
+                    currency={currency}
+                    onUpdateDayDate={handleUpdateDayDate}
                   />
                 </motion.div>
-              ) : (
+              ) : activeWorkspaceTab === 'charts' ? (
                 <motion.div
                   key="charts-view"
                   initial={{ opacity: 0, y: 5 }}
@@ -311,6 +427,20 @@ export default function App() {
                   <DashboardCharts
                     expenses={expenses}
                     friends={friends}
+                    currency={currency}
+                  />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="documents-view"
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  <EmergencyDocumentsPanel
+                    friends={friends}
+                    onUpdateFriend={handleUpdateFriend}
                   />
                 </motion.div>
               )}
@@ -328,6 +458,7 @@ export default function App() {
                 days={days}
                 selectedDayId={selectedDayId}
                 currentUserId={currentUserId}
+                currency={currency}
                 onAddExpenseClick={() => {
                   setEditingExpense(null);
                   setIsExpenseModalOpen(true);
@@ -347,6 +478,7 @@ export default function App() {
                 friends={friends}
                 onSettleDebt={handleSettleDebt}
                 currentUserId={currentUserId}
+                currency={currency}
               />
             </div>
           </div>
@@ -363,6 +495,7 @@ export default function App() {
         friends={friends}
         days={days}
         currentUserId={currentUserId}
+        currency={currency}
         onSaveExpense={(data, id) => {
           handleSaveExpense(data, id);
           setIsExpenseModalOpen(false);

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Friend, TripDay, Expense } from './types';
+import { Friend, TripDay, Expense, Currency } from './types';
 
 export const INITIAL_FRIENDS: Friend[] = [
   { id: 'u_1', name: 'Tú (Manuel)', avatarColor: 'bg-teal-500', avatarEmoji: '🎒' },
@@ -149,12 +149,16 @@ export function getSavedState() {
     const savedDays = localStorage.getItem('travel_days');
     const savedExpenses = localStorage.getItem('travel_expenses');
     const cachedUser = localStorage.getItem('travel_user_id');
+    const savedCurrency = localStorage.getItem('travel_currency') as Currency | null;
+    const savedBudgetLimit = localStorage.getItem('travel_budget_limit');
 
     return {
       friends: savedFriends ? JSON.parse(savedFriends) : INITIAL_FRIENDS,
       days: savedDays ? JSON.parse(savedDays) : INITIAL_DAYS,
       expenses: savedExpenses ? JSON.parse(savedExpenses) : INITIAL_EXPENSES,
       currentUserId: cachedUser || 'u_1',
+      currency: 'BRL',
+      budgetLimit: savedBudgetLimit ? parseFloat(savedBudgetLimit) : 1200,
     };
   } catch (e) {
     console.error('Error reading localStorage:', e);
@@ -163,16 +167,22 @@ export function getSavedState() {
       days: INITIAL_DAYS,
       expenses: INITIAL_EXPENSES,
       currentUserId: 'u_1',
+      currency: 'BRL' as Currency,
+      budgetLimit: 1200,
     };
   }
 }
 
-export function saveState(friends: Friend[], days: TripDay[], expenses: Expense[], currentUserId: string) {
+export function saveState(friends: Friend[], days: TripDay[], expenses: Expense[], currentUserId: string, currency: Currency, budgetLimit?: number) {
   try {
     localStorage.setItem('travel_friends', JSON.stringify(friends));
     localStorage.setItem('travel_days', JSON.stringify(days));
     localStorage.setItem('travel_expenses', JSON.stringify(expenses));
     localStorage.setItem('travel_user_id', currentUserId);
+    localStorage.setItem('travel_currency', currency);
+    if (budgetLimit !== undefined) {
+      localStorage.setItem('travel_budget_limit', budgetLimit.toString());
+    }
   } catch (e) {
     console.error('Error saving to localStorage:', e);
   }

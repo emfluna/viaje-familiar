@@ -3,11 +3,26 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+export type Currency = 'BRL';
+
+export const CURRENCY_SYMBOLS: Record<Currency, string> = {
+  BRL: 'R$',
+};
+
+export interface TravelDocument {
+  id: string;
+  name: string; // e.g., "Pase de abordo", "Pasaporte", "Seguro"
+  value: string; // Base64 string for photo / document data or code
+  uploadedAt: string; // date string
+}
+
 export interface Friend {
   id: string;
   name: string;
   avatarColor: string; // Tailwind bg color class
   avatarEmoji: string;
+  checkInCode?: string; // e.g. "LH783X"
+  documents?: TravelDocument[];
 }
 
 export interface TouristPlace {
@@ -17,6 +32,8 @@ export interface TouristPlace {
   timeOfDay: string; // e.g., "09:30" or "Morning"
   estimatedCost: number;
   isVisited: boolean;
+  locationName?: string;
+  locationUrl?: string;
 }
 
 export interface TripDay {

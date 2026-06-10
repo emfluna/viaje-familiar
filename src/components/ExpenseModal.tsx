@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Friend, Expense, TripDay, ExpenseSplit } from '../types';
+import { Friend, Expense, TripDay, ExpenseSplit, Currency, CURRENCY_SYMBOLS } from '../types';
 import { 
   X, 
   DollarSign, 
@@ -31,6 +31,7 @@ interface ExpenseModalProps {
   onSaveExpense: (expenseData: Omit<Expense, 'id'>, id?: string) => void;
   editingExpense?: Expense | null;
   initialDayId?: string;
+  currency: Currency;
 }
 
 const CATEGORY_ICONS = {
@@ -59,6 +60,7 @@ export default function ExpenseModal({
   onSaveExpense,
   editingExpense,
   initialDayId = 'all',
+  currency,
 }: ExpenseModalProps) {
   // Form fields
   const [description, setDescription] = useState('');
@@ -224,8 +226,8 @@ export default function ExpenseModal({
   let splitWarning = '';
   if (splitType === 'montos' && parsedAmount > 0) {
     const diff = Math.round((parsedAmount - splitsSum) * 100) / 100;
-    if (diff > 0) splitWarning = `Aún faltan por asignar ${diff.toFixed(2)} €`;
-    else if (diff < 0) splitWarning = `Has excedido el total por ${Math.abs(diff).toFixed(2)} €`;
+    if (diff > 0) splitWarning = `Aún faltan por asignar ${CURRENCY_SYMBOLS[currency]} ${diff.toFixed(2)}`;
+    else if (diff < 0) splitWarning = `Has excedido el total por ${CURRENCY_SYMBOLS[currency]} ${Math.abs(diff).toFixed(2)}`;
   } else if (splitType === 'porcentajes' && parsedAmount > 0) {
     const totalPct = involvedFriendIds.reduce((sum, id) => sum + (parseFloat(customPercentages[id]) || 0), 0);
     const diff = Math.round((100 - totalPct) * 100) / 100;
@@ -342,9 +344,9 @@ export default function ExpenseModal({
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Monto Total (€)</label>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Monto Total ({CURRENCY_SYMBOLS[currency]})</label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-2.5 text-slate-400 font-bold text-sm">€</span>
+                  <span className="absolute left-3.5 top-2.5 text-slate-400 font-bold text-sm">{CURRENCY_SYMBOLS[currency]}</span>
                   <input
                     id="input-expense-amount"
                     type="number"
@@ -383,7 +385,7 @@ export default function ExpenseModal({
                 <div className="grid grid-cols-2 gap-1 px-0.5">
                   {[
                     { id: 'equitativo', label: 'Inmueves (=)', icon: Check },
-                    { id: 'montos', label: 'Montos (€)', icon: DollarSign },
+                    { id: 'montos', label: `Montos (${CURRENCY_SYMBOLS[currency]})`, icon: DollarSign },
                   ].map((item) => {
                     const isSelected = splitType === item.id;
                     const Icon = item.icon;
@@ -464,7 +466,7 @@ export default function ExpenseModal({
                         <div className="flex items-center gap-2">
                           {splitType === 'montos' && (
                             <div className="relative w-20">
-                              <span className="absolute left-1.5 top-1 text-[10px] text-slate-400 font-mono">€</span>
+                              <span className="absolute left-1.5 top-1 text-[10px] text-slate-400 font-mono">{CURRENCY_SYMBOLS[currency]}</span>
                               <input
                                 type="number"
                                 step="0.01"
@@ -481,7 +483,7 @@ export default function ExpenseModal({
                           )}
 
                           <span className="text-xs font-mono font-bold text-slate-700 min-w-[50px] text-right">
-                            {assignedShare.toFixed(2)} €
+                            {CURRENCY_SYMBOLS[currency]} {assignedShare.toFixed(2)}
                           </span>
                         </div>
                       )}
