@@ -1,0 +1,6 @@
+{
+  "name": "Splitwise - Dividir Gastos",
+  "description": "Planificador de itinerarios y control de gastos de viaje. Organiza paradas de turismo por días, divide cuentas de alojamiento o comida y liquida saldos en grupo.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
