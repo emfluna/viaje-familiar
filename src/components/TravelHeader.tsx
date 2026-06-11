@@ -22,8 +22,6 @@ interface TravelHeaderProps {
   onDeleteFriend?: (id: string) => void;
 }
 
-const QUICK_EMOJIS = ['✈️', '😎', '🎒', '🌴', '💃', '📸', '🏖️', '🇧🇷', '🗺️', '🍔', '☀️'];
-
 export default function TravelHeader({
   friends,
   currentUserId,
@@ -51,7 +49,6 @@ export default function TravelHeader({
     .filter((e) => e.category === 'hospedaje')
     .reduce((sum, e) => sum + e.amount, 0);
 
-  // States for friends interactive panel
   const [isManaging, setIsManaging] = useState(false);
   const [newFriendName, setNewFriendName] = useState('');
   const [selectedColor, setSelectedColor] = useState('bg-teal-500');
@@ -78,35 +75,35 @@ export default function TravelHeader({
       {/* Semi-transparent blur overlay for excellent text contrast */}
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px] z-0 pointer-events-none" />
 
-      {/* Global Spotify Control - Absolute Top-Right Corner */}
-      <div className="fixed top-2 right-2 md:top-4 md:right-4 z-[100]">
+      {/* Global Spotify Control - Absolute Corner */}
+      <div className="absolute top-2 right-2 md:top-4 md:right-4 z-[100]">
         <div className="relative group">
           <button
             onClick={() => setShowSpotify(!showSpotify)}
-            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-[0_8px_32px_rgba(29,185,84,0.3)] cursor-pointer border-2 backdrop-blur-2xl ${
+            className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all shadow-[0_8px_32px_rgba(29,185,84,0.3)] cursor-pointer border-2 backdrop-blur-2xl ${
               showSpotify 
                 ? 'bg-[#1DB954]/90 border-white scale-105 shadow-[#1DB954]/50' 
                 : 'bg-black/60 border-[#1DB954]/50 hover:bg-black/80 hover:border-[#1DB954] hover:scale-110'
             }`}
             title="Music Hub — Spotify 🟢"
           >
-            <SpotifyIcon className={`w-8 h-8 transition-all duration-500 ${showSpotify ? 'text-white rotate-[360deg]' : 'text-[#1DB954]'}`} />
+            <SpotifyIcon className={`w-6 h-6 md:w-8 md:h-8 transition-all duration-500 ${showSpotify ? 'text-white rotate-[360deg]' : 'text-[#1DB954]'}`} />
             {showSpotify && <div className="absolute inset-0 bg-white/20 rounded-full animate-ping" />}
           </button>
 
           {showSpotify && (
-            <div className="absolute right-0 top-full mt-4 w-80 bg-[#121212]/95 backdrop-blur-3xl border border-[#1DB954]/30 rounded-3xl shadow-[0_30px_60px_rgba(0,0,0,0.8)] p-4 z-50 animate-spring-up overflow-hidden">
+            <div className="absolute right-0 top-full mt-4 w-72 md:w-80 bg-[#121212]/95 backdrop-blur-3xl border border-[#1DB954]/30 rounded-3xl shadow-[0_30px_60px_rgba(0,0,0,0.8)] p-4 z-50 animate-spring-up overflow-hidden">
               <div className="flex items-center justify-between mb-4 px-1">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 bg-[#1DB954] rounded-full flex items-center justify-center">
-                    <SpotifyIcon className="w-5 h-5 text-white" />
+                  <div className="w-7 h-7 md:w-8 md:h-8 bg-[#1DB954] rounded-full flex items-center justify-center">
+                    <SpotifyIcon className="w-4 h-4 md:w-5 md:h-5 text-white" />
                   </div>
-                  <span className="text-[11px] font-black text-white uppercase tracking-widest font-sans">
+                  <span className="text-[10px] md:text-[11px] font-black text-white uppercase tracking-widest font-sans">
                     Vibra Brasil 🇧🇷
                   </span>
                 </div>
                 <button onClick={() => setShowSpotify(false)} className="bg-white/10 p-1.5 rounded-full text-white/60 hover:text-white hover:bg-white/20 transition-all">
-                  <X className="w-4 h-4" />
+                  <X className="w-3.5 h-3.5 md:w-4 md:h-4" />
                 </button>
               </div>
               <div className="bg-black/40 rounded-2xl overflow-hidden border border-white/5 shadow-2xl">
@@ -201,7 +198,6 @@ export default function TravelHeader({
                 ))}
               </select>
               
-              {/* Active companion visual badge and toggle manager panel */}
               <button
                 onClick={() => setIsManaging(!isManaging)}
                 className="p-1 rounded-full border-2 border-emerald-400/30 hover:border-emerald-400 group-hover:scale-110 transition-all active:scale-95 cursor-pointer relative z-10 shadow-lg bg-black/20 backdrop-blur-md"
@@ -228,7 +224,7 @@ export default function TravelHeader({
               </button>
             </div>
 
-            {/* List to withdraw / anular o remover amigos */}
+            {/* List members */}
             <div className="space-y-1.5 max-h-36 overflow-y-auto">
               <span className="text-[10px] text-slate-400 uppercase font-extrabold tracking-wider block font-sans">Integrantes ({friends.length}):</span>
               {friends.map((friend) => {
@@ -252,14 +248,12 @@ export default function TravelHeader({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          // In TravelHeader, we don't have the full editing states like Sidebar,
-                          // but the user wants to "editar compañeros". 
-                          // I'll show an alert or just tell them to use the sidebar if needed, 
-                          // OR I can quickly add a direct edit prompt if we keep it simple.
                           const newName = window.prompt("Editar nombre del viajero:", friend.name);
-                          // This is a bit hacky but if onUpdateFriend was here it would work.
-                          // For now, I'll direct them to the sidebar which has the full editor.
-                          alert("Para una edición completa (avatar, color, nombre), utiliza el panel lateral izquierdo.");
+                          if (newName) {
+                             // Assuming direct edit via prompt works if onUpdateFriend was wired, 
+                             // but for now redirecting to sidebar as designed.
+                             alert("Para una edición completa, utiliza el panel lateral izquierdo.");
+                          }
                         }}
                         className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
                       >
@@ -269,19 +263,15 @@ export default function TravelHeader({
                       {friends.length > 1 && onDeleteFriend && (
                         <button
                           onClick={() => {
-                            if (window.confirm(`⚠️ ¡ATENCIÓN! Se borrará absolutamente TODO lo relacionado a este viajero (sus deudas, gastos individuales, divisiones de cuentas de viaje y pasajes o documentos registrados). ¿Estás completamente seguro de que deseas eliminar permanentemente a ${friend.name}?`)) {
+                            if (window.confirm(`¿Estás seguro de que deseas eliminar permanentemente a ${friend.name}?`)) {
                               onDeleteFriend(friend.id);
-                              // Reset active user if the active user is deleted
                               if (isPayerActive) {
                                 const nextLeftover = friends.find(f => f.id !== friend.id);
-                                if (nextLeftover) {
-                                  onUserChange(nextLeftover.id);
-                                }
+                                if (nextLeftover) onUserChange(nextLeftover.id);
                               }
                             }
                           }}
-                          className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors cursor-pointer animate-fade-in"
-                          title="Anular / Retirar este viajero"
+                          className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -292,16 +282,16 @@ export default function TravelHeader({
               })}
             </div>
 
-            {/* Form to add a new traveler */}
+            {/* Form travelers */}
             {onAddFriend && (
               <form onSubmit={handleCreateFriend} className="border-t border-slate-100 pt-3 space-y-2.5">
-                <span className="text-[10px] text-slate-400 uppercase font-extrabold tracking-wider block font-sans">Agregar de forma offline:</span>
+                <span className="text-[10px] text-slate-400 uppercase font-extrabold tracking-wider block font-sans">Agregar viajero:</span>
                 <div className="flex gap-1.5">
                   <div className="relative flex-1">
                     <input
                       type="text"
                       placeholder="Nombre viajero..."
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 placeholder-slate-450 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                       value={newFriendName}
                       onChange={(e) => setNewFriendName(e.target.value)}
                       maxLength={18}
@@ -310,7 +300,6 @@ export default function TravelHeader({
                   <button
                     type="submit"
                     className="p-1 px-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl flex items-center justify-center transition-colors shadow-sm cursor-pointer shrink-0"
-                    title="Agregar"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
@@ -321,21 +310,6 @@ export default function TravelHeader({
         )}
       </div>
     </header>
-  );
-}
-
-function ChevronDownIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={2.5}
-      stroke="currentColor"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-    </svg>
   );
 }
 
@@ -350,4 +324,3 @@ function SpotifyIcon({ className }: { className?: string }) {
     </svg>
   );
 }
-

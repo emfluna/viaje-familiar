@@ -285,12 +285,10 @@ export default function App() {
     }
   };
 
-  // Delete cost item with user feedback
+  // Delete cost item
   const handleDeleteExpense = (id: string) => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar este gasto de viaje?')) {
-      const nextExpenses = expenses.filter((e) => e.id !== id);
-      updateStateAndSave(friends, days, nextExpenses, currentUserId);
-    }
+    const nextExpenses = expenses.filter((e) => e.id !== id);
+    updateStateAndSave(friends, days, nextExpenses, currentUserId);
   };
 
   // Settle up direct repayment

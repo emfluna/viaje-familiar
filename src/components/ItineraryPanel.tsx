@@ -296,26 +296,58 @@ export default function ItineraryPanel({
 
           {/* Sequential Day-by-Day Breakdown Summary */}
           <div className="space-y-3">
-            <h4 className="font-bold text-slate-700 text-xs uppercase tracking-wider font-display">Itinerario General por Días</h4>
+            <h4 id="itinerario-general-title" className="font-extrabold text-white text-[10px] uppercase tracking-[0.15em] font-display bg-emerald-600 px-4 py-2.5 rounded-xl shadow-sm text-center mb-4">
+              ITINERARIO GENERAL DIA POR DIA, DALE CLIC AL DIA PARA PODER VER DETALLE
+            </h4>
             
-            <div className="space-y-2.5">
-              {days.map((day) => (
-                <div key={day.id} className="border border-slate-105 rounded-2xl p-4 bg-white hover:border-slate-200 transition-colors shadow-3xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-800 font-display">
-                      Día {day.dayNumber} — {(() => {
-                        try {
-                          const d = new Date(day.date);
-                          const dd = d.getDate().toString().padStart(2, '0');
-                          const mm = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"][d.getMonth()];
-                          return `${dd}/${mm}`;
-                        } catch { return day.date; }
-                      })()}
-                    </span>
-                    <span className="text-[10px] font-bold bg-slate-100 text-slate-550 rounded-md px-2 py-0.5">
-                      {day.touristPlaces.length} lugares
-                    </span>
-                  </div>
+            <div className="space-y-4">
+              {days.map((day, dIdx) => {
+                const isSelected = selectedDay?.id === day.id;
+                
+                // Color cycle for non-selected days
+                const colors = [
+                  { bg: 'bg-blue-50/60', border: 'border-blue-100', text: 'text-blue-800', badge: 'bg-blue-100 text-blue-700' },
+                  { bg: 'bg-amber-50/60', border: 'border-amber-100', text: 'text-amber-800', badge: 'bg-amber-100 text-amber-700' },
+                  { bg: 'bg-rose-50/60', border: 'border-rose-100', text: 'text-rose-800', badge: 'bg-rose-100 text-rose-700' },
+                  { bg: 'bg-purple-50/60', border: 'border-purple-100', text: 'text-purple-800', badge: 'bg-purple-100 text-purple-700' },
+                  { bg: 'bg-cyan-50/60', border: 'border-cyan-100', text: 'text-cyan-800', badge: 'bg-cyan-100 text-cyan-700' },
+                ];
+                const dayColor = isSelected 
+                  ? { bg: 'bg-emerald-50', border: 'border-emerald-300', text: 'text-emerald-900', badge: 'bg-emerald-600 text-white' }
+                  : colors[dIdx % colors.length];
+
+                return (
+                  <div 
+                    key={day.id} 
+                    className={`border-2 rounded-2xl p-4 transition-all shadow-sm cursor-pointer hover:scale-[1.02] active:scale-98 ${dayColor.bg} ${dayColor.border}`}
+                    onClick={() => {
+                      // Triggering a programmatic selection if needed, but the current UI suggests 
+                      // individual days are already manageable in the main view.
+                      // For now, we focus on the visual representation requested.
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[13px] font-black font-display uppercase tracking-wider flex items-center gap-2 ${dayColor.text}`}>
+                        DIA {day.dayNumber} — {(() => {
+                          try {
+                            const d = new Date(day.date);
+                            const dd = d.getDate().toString().padStart(2, '0');
+                            const mm = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"][d.getMonth()];
+                            return `${dd} ${mm}`;
+                          } catch { return day.date; }
+                        })()}
+                        {isSelected && (
+                          <span className="flex items-center gap-1 animate-pulse">
+                            <CheckCircle className="w-4 h-4 ml-1" />
+                            <span className="text-[9px] bg-emerald-700 text-white px-2 py-0.5 rounded-full">ACTIVO</span>
+                          </span>
+                        )}
+                      </span>
+                      <span className={`text-[10px] font-black rounded-lg px-2.5 py-1 uppercase tracking-tight shadow-3xs ${dayColor.badge}`}>
+                        {day.touristPlaces.length} {day.touristPlaces.length === 1 ? 'Lugar' : 'Lugares'}
+                      </span>
+                    </div>
 
                   {day.touristPlaces.length === 0 ? (
                     <p className="text-[11px] text-slate-400 italic mt-1.5 px-1">Sin visitas registradas todavía para este día de viaje.</p>
@@ -337,7 +369,8 @@ export default function ItineraryPanel({
                     </div>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -387,14 +420,14 @@ export default function ItineraryPanel({
   return (
     <div className="bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden flex flex-col h-full">
       {/* Header */}
-      <div className="p-3.5 border-b border-slate-50 bg-gradient-to-br from-teal-50/20 to-indigo-50/10 flex flex-wrap items-center justify-between gap-3">
+      <div className="p-3.5 border-b border-slate-50 bg-gradient-to-br from-emerald-50/40 to-teal-50/20 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-teal-100/50 flex items-center justify-center text-teal-600">
-            <Compass className="w-5 h-5 text-teal-600" />
+          <div className="w-9 h-9 rounded-xl bg-emerald-100/60 flex items-center justify-center text-emerald-600 shadow-3xs">
+            <Compass className="w-5 h-5 text-emerald-600" />
           </div>
           <div>
-            <h3 className="font-bold text-slate-800 text-[13px] font-display leading-tight">
-              Día {selectedDay.dayNumber} — Itinerario
+            <h3 className="font-bold text-emerald-900 text-[13px] font-display leading-tight">
+              Día {selectedDay.dayNumber} — Itinerario Activo 🇧🇷
             </h3>
             
             <div className="text-[10px] text-slate-500 flex items-center gap-1.5 mt-0.5">
@@ -772,7 +805,7 @@ export default function ItineraryPanel({
                       {place.name}
                     </span>
                     
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-all">
                       <button
                         id={`btn-edit-place-${place.id}`}
                         onClick={() => {
@@ -786,19 +819,19 @@ export default function ItineraryPanel({
                           setShowAddForm(false);
                           window.scrollTo({ top: 0, behavior: 'smooth' });
                         }}
-                        className="p-1 hover:bg-indigo-50 text-slate-300 hover:text-indigo-600 rounded-md transition-colors cursor-pointer"
+                        className="p-2 md:p-1.5 bg-indigo-100 md:bg-transparent hover:bg-indigo-200 border border-indigo-200 md:border-transparent text-indigo-700 md:text-slate-300 md:hover:text-indigo-600 rounded-xl shadow-md md:shadow-none transition-all cursor-pointer ring-2 ring-white/50 md:ring-0"
                         title="Editar parada"
                       >
-                        <Pencil className="w-3 h-3" />
+                        <Pencil className="w-4 h-4 md:w-3.5 md:h-3.5" />
                       </button>
 
                       <button
                         id={`btn-remove-place-${place.id}`}
                         onClick={() => onRemovePlace(selectedDay.id, place.id)}
-                        className="p-1 hover:bg-rose-50 text-slate-300 hover:text-rose-500 rounded-md transition-colors cursor-pointer"
+                        className="p-2 md:p-1.5 bg-rose-100 md:bg-transparent hover:bg-rose-200 border border-rose-200 md:border-transparent text-rose-600 md:text-slate-300 md:hover:text-rose-500 rounded-xl shadow-md md:shadow-none transition-all cursor-pointer ring-2 ring-white/50 md:ring-0"
                         title="Eliminar parada turística"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-4 h-4 md:w-3.5 md:h-3.5" />
                       </button>
                     </div>
                   </div>

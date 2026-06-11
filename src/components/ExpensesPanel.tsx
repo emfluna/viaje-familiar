@@ -44,6 +44,7 @@ export default function ExpensesPanel({
 }: ExpensesPanelProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
@@ -298,22 +299,49 @@ export default function ExpensesPanel({
                         {/* Only allow edit/delete for non-settlements to avoid corrupting flow */}
                         {!exp.isSettlement ? (
                           <>
-                            <button
-                              id={`btn-edit-expense-${exp.id}`}
-                              onClick={() => onEditExpense(exp)}
-                              className="p-1.5 hover:bg-slate-100 text-slate-500 hover:text-slate-800 rounded-lg transition-colors cursor-pointer border border-slate-100"
-                              title="Editar gasto"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              id={`btn-delete-expense-${exp.id}`}
-                              onClick={() => onDeleteExpense(exp.id)}
-                              className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer border border-slate-100"
-                              title="Eliminar gasto"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            {confirmDeleteId === exp.id ? (
+                               <motion.div 
+                                 initial={{ opacity: 0, scale: 0.95 }}
+                                 animate={{ opacity: 1, scale: 1 }}
+                                 className="flex items-center gap-1.5"
+                               >
+                                 <span className="text-[10px] font-black text-rose-600 mr-0.5 whitespace-nowrap">¿Seguro de borrar?</span>
+                                 <button
+                                   onClick={() => {
+                                     onDeleteExpense(exp.id);
+                                     setConfirmDeleteId(null);
+                                   }}
+                                   className="bg-rose-600 text-white text-[10px] font-black px-3 py-1.5 rounded-lg shadow-sm active:scale-95 cursor-pointer"
+                                 >
+                                   SÍ
+                                 </button>
+                                 <button
+                                   onClick={() => setConfirmDeleteId(null)}
+                                   className="bg-slate-200 text-slate-600 text-[10px] font-black px-3 py-1.5 rounded-lg active:scale-95 cursor-pointer"
+                                 >
+                                   NO
+                                 </button>
+                               </motion.div>
+                            ) : (
+                               <>
+                                <button
+                                  id={`btn-edit-expense-${exp.id}`}
+                                  onClick={() => onEditExpense(exp)}
+                                  className="p-2 md:p-1.5 bg-indigo-50 md:bg-transparent hover:bg-indigo-100 border border-indigo-100 md:border-transparent text-indigo-600 md:text-slate-500 md:hover:text-slate-800 rounded-xl transition-all cursor-pointer shadow-3xs md:shadow-none"
+                                  title="Editar gasto"
+                                >
+                                  <Edit3 className="w-4 h-4 md:w-3.5 md:h-3.5" />
+                                </button>
+                                <button
+                                  id={`btn-delete-expense-${exp.id}`}
+                                  onClick={() => setConfirmDeleteId(exp.id)}
+                                  className="p-2 md:p-1.5 bg-rose-50 md:bg-transparent hover:bg-rose-100 border border-rose-100 md:border-transparent text-rose-500 md:text-slate-400 md:hover:text-rose-600 rounded-xl transition-all cursor-pointer shadow-3xs md:shadow-none"
+                                  title="Eliminar gasto"
+                                >
+                                  <Trash2 className="w-4 h-4 md:w-3.5 md:h-3.5" />
+                                </button>
+                               </>
+                            )}
                           </>
                         ) : (
                           <span className="text-[9px] bg-emerald-100/40 text-emerald-700 font-bold px-2 py-1 rounded-lg border border-emerald-200 inline-flex items-center gap-1 select-none">
