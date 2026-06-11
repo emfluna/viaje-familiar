@@ -297,7 +297,7 @@ export default function ItineraryPanel({
           {/* Sequential Day-by-Day Breakdown Summary */}
           <div className="space-y-3">
             <h4 id="itinerario-general-title" className="font-extrabold text-white text-[10px] uppercase tracking-[0.15em] font-display bg-emerald-600 px-4 py-2.5 rounded-xl shadow-sm text-center mb-4">
-              ITINERARIO GENERAL DIA POR DIA, DALE CLIC AL DIA PARA PODER VER DETALLE
+              ITINERARIO GENERAL DIA POR DIA
             </h4>
             
             <div className="space-y-4">
