@@ -1,6 +1,6 @@
 {
-  "name": "Splitwise - Dividir Gastos",
-  "description": "Planificador de itinerarios y control de gastos de viaje. Organiza paradas de turismo por días, divide cuentas de alojamiento o comida y liquida saldos en grupo.",
-  "requestFramePermissions": [],
+  "name": "Viaje Familiar Brasil",
+  "description": "Itinerario y control de gastos para tu viaje a Brasil. Descubre lugares cercanos con GPS e IA, gestiona documentos y divide deudas.",
+  "requestFramePermissions": ["geolocation"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

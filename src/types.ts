@@ -20,7 +20,8 @@ export interface Friend {
   id: string;
   name: string;
   avatarColor: string; // Tailwind bg color class
-  avatarEmoji: string;
+  avatarUrl?: string; // URL to avatar image
+  avatarEmoji?: string; // Fallback
   checkInCode?: string; // e.g. "LH783X"
   documents?: TravelDocument[];
 }

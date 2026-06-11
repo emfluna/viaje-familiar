@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { Friend, Expense, Currency, CURRENCY_SYMBOLS } from '../types';
 import { Compass, Users, Plane, Calendar, Wallet, UserPlus, Trash2, X, Plus, Sparkles, Check } from 'lucide-react';
+import Avatar from './Avatar';
 
 interface TravelHeaderProps {
   friends: Friend[];
@@ -53,23 +54,21 @@ export default function TravelHeader({
   // States for friends interactive panel
   const [isManaging, setIsManaging] = useState(false);
   const [newFriendName, setNewFriendName] = useState('');
-  const [selectedEmoji, setSelectedEmoji] = useState('🎒');
   const [selectedColor, setSelectedColor] = useState('bg-teal-500');
+  const [showSpotify, setShowSpotify] = useState(false);
 
   const handleCreateFriend = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newFriendName.trim()) return;
     if (onAddFriend) {
-      onAddFriend(newFriendName.trim(), selectedEmoji, selectedColor);
+      onAddFriend(newFriendName.trim(), '👤', selectedColor);
       setNewFriendName('');
-      // Set to another random emoji
-      setSelectedEmoji(QUICK_EMOJIS[Math.floor(Math.random() * QUICK_EMOJIS.length)]);
     }
   };
 
   return (
     <header 
-      className="text-white min-h-[100px] py-4 px-6 sticky top-0 z-40 shadow-lg flex flex-col md:flex-row items-center justify-between gap-4 relative overflow-hidden"
+      className="text-white min-h-[100px] py-4 px-6 sticky top-0 z-40 shadow-lg flex flex-col md:flex-row items-center justify-between gap-4 relative overflow-visible"
       style={{
         backgroundImage: "linear-gradient(to right, rgba(15, 23, 42, 0.75), rgba(15, 118, 110, 0.65)), url('https://images.unsplash.com/photo-1483729558449-99ef09a8c325?auto=format&fit=crop&w=1500&q=80')",
         backgroundSize: 'cover',
@@ -96,101 +95,88 @@ export default function TravelHeader({
               Viaje Familiar
             </span>
           </div>
-          <span className="text-xs text-emerald-100/90 block drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]">
-            Diviértanse mucho.
+          <span className="text-[10px] text-emerald-100/90 block drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)] max-w-xs md:max-w-md lg:max-w-xl leading-relaxed whitespace-normal italic">
+            "Dentro de veinte años estarás más decepcionado por las cosas que no hiciste que por las que hiciste"
           </span>
         </div>
       </div>
 
-      {/* Connection Mode Status Flag */}
-      <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[10px] font-extrabold uppercase tracking-wider select-none transition-all relative z-10 ${
-        isOffline 
-          ? 'bg-amber-500/30 text-amber-105 border-amber-500/40 shadow-xs' 
-          : 'bg-emerald-500/30 text-emerald-100 border-emerald-500/40'
-      }`}>
-        <span className="relative flex h-2 w-2">
-          {isOffline && (
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-          )}
-          <span className={`relative inline-flex rounded-full h-2 w-2 ${isOffline ? 'bg-amber-400' : 'bg-emerald-400'}`}></span>
-        </span>
-        <span>{isOffline ? 'Modo sin conexión' : 'Conectado'}</span>
-      </div>
-
       {/* Global quick glance indicators */}
-      <div className="hidden lg:flex items-center gap-6 text-xs text-emerald-100 bg-black/30 backdrop-blur-md py-2 px-4 rounded-xl border border-white/10 font-medium select-none relative z-10">
-        <div className="flex items-center gap-2 border-r border-white/15 pr-4">
-          <Plane className="w-4 h-4 text-emerald-300" />
-          <div>
-            <span className="text-emerald-300 font-semibold block text-[10px] uppercase">Gasto Total</span>
-            <span className="font-mono text-white text-sm font-bold">{CURRENCY_SYMBOLS[currency]} {totalTripCost.toFixed(2)}</span>
+      <div className="hidden lg:flex items-center gap-4 text-[10px] text-emerald-100 bg-black/30 backdrop-blur-md py-1.5 px-3 rounded-lg border border-white/10 font-bold select-none relative z-10">
+        <div className="flex items-center gap-1.5 border-r border-white/15 pr-3">
+          <Plane className="w-3 h-3 text-emerald-300" />
+          <div className="flex items-center gap-1.5">
+            <span className="text-emerald-300 uppercase">Gasto Total</span>
+            <span className="font-mono text-white text-[11px]">{CURRENCY_SYMBOLS[currency]} {totalTripCost.toFixed(2)}</span>
           </div>
         </div>
-        <div className="flex items-center gap-2 border-r border-white/15 pr-4">
-          <div className="text-sm">🍔</div>
-          <div>
-            <span className="text-emerald-350 font-semibold block text-[10px] uppercase font-sans">Alimentación</span>
-            <span className="font-mono text-white text-sm font-bold">{CURRENCY_SYMBOLS[currency]} {foodCost.toFixed(2)}</span>
+        <div className="flex items-center gap-1.5 border-r border-white/15 pr-3">
+          <span className="text-xs">🍔</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-emerald-350 uppercase">Comida</span>
+            <span className="font-mono text-white text-[11px]">{CURRENCY_SYMBOLS[currency]} {foodCost.toFixed(2)}</span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="text-sm">🏨</div>
-          <div>
-            <span className="text-emerald-350 font-semibold block text-[10px] uppercase font-sans">Hospedaje</span>
-            <span className="font-mono text-white text-sm font-bold">{CURRENCY_SYMBOLS[currency]} {lodgingCost.toFixed(2)}</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs">🏨</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-emerald-350 uppercase">Hotel</span>
+            <span className="font-mono text-white text-[11px]">{CURRENCY_SYMBOLS[currency]} {lodgingCost.toFixed(2)}</span>
           </div>
         </div>
       </div>
 
       {/* Traveler Simulator dropdown & Budget Control */}
-      <div className="flex flex-wrap items-center gap-3 self-end md:self-auto relative animate-fade-in z-10">
-        {/* Interactive Budget Regulator Control box */}
-        <div className="bg-white/15 backdrop-blur-md border border-white/20 p-1 rounded-xl flex items-center gap-1.5 shadow-inner">
-          <span className="text-[10px] font-extrabold text-teal-100 pl-2 uppercase tracking-wide font-sans">
-            Presupuesto:
-          </span>
-          <div className="flex items-center gap-1 bg-black/25 rounded-md px-1.5 py-0.5 border border-white/10">
-            <button
-              onClick={() => onBudgetLimitChange(Math.max(100, budgetLimit - 100))}
-              className="w-4 h-4 bg-white/10 hover:bg-white/20 text-white rounded flex items-center justify-center text-[10px] font-black cursor-pointer select-none"
-              title="Reducir límite"
-            >
-              -
-            </button>
-            <input
-              type="text"
-              id="input-budget-header"
-              className="w-12 text-center bg-transparent border-none text-white font-mono text-xs font-bold leading-tight p-0 focus:outline-none focus:ring-0"
-              value={budgetLimit}
-              onChange={(e) => {
-                const val = parseFloat(e.target.value);
-                if (!isNaN(val)) onBudgetLimitChange(val);
-                else if (e.target.value === '') onBudgetLimitChange(0);
-              }}
-            />
-            <button
-              onClick={() => onBudgetLimitChange(budgetLimit + 100)}
-              className="w-4 h-4 bg-white/10 hover:bg-white/20 text-white rounded flex items-center justify-center text-[10px] font-black cursor-pointer select-none"
-              title="Incrementar límite"
-            >
-              +
-            </button>
-          </div>
-          <span className="text-[10px] text-teal-150 font-mono pr-2 font-bold select-none">
-            {CURRENCY_SYMBOLS[currency]}
-          </span>
+      <div className="flex flex-wrap items-center justify-center gap-3 self-center md:self-auto relative animate-fade-in z-10">
+        
+        {/* Spotify Toggle */}
+        <div className="relative">
+          <button
+            onClick={() => setShowSpotify(!showSpotify)}
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-md cursor-pointer border-2 ${
+              showSpotify ? 'bg-emerald-500 border-white scale-110' : 'bg-black/40 border-white/20 hover:bg-black/60'
+            }`}
+            title="Música para el viaje 🎵"
+          >
+            <Compass className={`w-5 h-5 ${showSpotify ? 'text-white animate-pulse' : 'text-emerald-400'}`} />
+          </button>
+
+          {showSpotify && (
+            <div className="absolute left-1/2 -translate-x-1/2 top-full mt-3 w-64 bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-3 z-50 animate-spring-up overflow-hidden">
+              <div className="flex items-center justify-between mb-2 px-1">
+                <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2">
+                  <Compass className="w-3.5 h-3.5" />
+                  <span>Vibra Brasil 🇧🇷</span>
+                </span>
+                <button onClick={() => setShowSpotify(false)} className="text-slate-500 hover:text-white">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <iframe 
+                style={{ borderRadius: '12px' }} 
+                src="https://open.spotify.com/embed/playlist/3TqICupAgz1dyriD5fPemD?utm_source=generator&theme=0" 
+                width="100%" 
+                height="152" 
+                frameBorder="0" 
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
+                loading="lazy"
+              ></iframe>
+              <p className="text-[8px] text-emerald-500/80 text-center font-bold italic mt-2">
+                "A música alimenta a alma do viajante"
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Unificado: Selector de Amigos y botón de administración del grupo */}
-        <div className="bg-white/10 backdrop-blur-md border border-white/20 p-1 rounded-xl flex items-center gap-1.5 shadow-md">
-          <div className="flex items-center gap-1">
-            <span className="text-[10px] font-bold text-emerald-200 pl-2 hidden lg:inline uppercase tracking-wider font-sans">
-              Viajero:
-            </span>
-            <div className="relative">
+          <div className="flex flex-col items-center gap-1 min-w-[120px]">
+             <span className="text-[10px] font-black font-sans text-emerald-200 uppercase tracking-tighter drop-shadow-md">
+               {currentUserObj?.name || 'Viajero'}
+             </span>
+             <div className="relative">
               <select
                 id="select-simulated-user"
-                className="bg-slate-900/60 font-semibold text-white text-xs border border-white/10 px-3 py-1 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-400 cursor-pointer appearance-none pr-8 py-1"
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
                 value={currentUserId}
                 onChange={(e) => onUserChange(e.target.value)}
               >
@@ -200,26 +186,17 @@ export default function TravelHeader({
                   </option>
                 ))}
               </select>
-              <ChevronDownIcon className="w-3.5 h-3.5 absolute right-2 top-2 text-emerald-300 pointer-events-none" />
+              
+              {/* Active companion visual badge and toggle manager panel */}
+              <button
+                onClick={() => setIsManaging(!isManaging)}
+                className="flex items-center justify-center transition-opacity hover:opacity-80 active:scale-95 cursor-pointer relative z-10"
+                title="Administrar Grupo de Viajeros (Simulador)"
+              >
+                {currentUserObj ? <Avatar friend={currentUserObj} size="md" /> : '👥'}
+              </button>
             </div>
           </div>
-
-          {/* Active companion visual badge and toggle manager panel */}
-          <button
-            onClick={() => setIsManaging(!isManaging)}
-            className={`w-8.5 h-8.5 rounded-lg flex items-center justify-center text-lg font-bold transition-all relative border cursor-pointer hover:scale-105 active:scale-95 ${
-              isManaging 
-                ? 'bg-indigo-600 border-indigo-400 text-white shadow-lg shadow-indigo-600/35' 
-                : 'bg-white/15 border-white/20 text-white'
-            }`}
-            title="Administrar Grupo de Viajeros (Simulador)"
-          >
-            {currentUserObj ? currentUserObj.avatarEmoji : '👥'}
-            <span className="absolute -bottom-1 -right-1 bg-teal-500 text-[8px] font-bold rounded-full px-1 border border-indigo-900 leading-none py-0.5">
-              {friends.length}
-            </span>
-          </button>
-        </div>
 
         {/* POPUP FLOTANTE DE GESTIÓN DE AMIGOS */}
         {isManaging && (
@@ -245,9 +222,7 @@ export default function TravelHeader({
                 return (
                   <div key={friend.id} className="flex items-center justify-between p-1.5 bg-slate-50 rounded-xl border border-slate-100 hover:bg-indigo-50/20 transition-all">
                     <div className="flex items-center gap-2">
-                      <span className={`w-7 h-7 rounded-lg text-xs font-bold text-white flex items-center justify-center ${friend.avatarColor}`}>
-                        {friend.avatarEmoji}
-                      </span>
+                      <Avatar friend={friend} size="md" />
                       <span className={`text-[11px] font-bold ${isPayerActive ? 'text-indigo-600 font-extrabold' : 'text-slate-700'}`}>
                         {friend.name}
                       </span>
@@ -300,17 +275,6 @@ export default function TravelHeader({
                       onChange={(e) => setNewFriendName(e.target.value)}
                       maxLength={18}
                     />
-                  </div>
-                  <div className="relative">
-                    <select
-                      className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-sm cursor-pointer focus:outline-none focus:ring-1 focus:ring-indigo-500 text-center"
-                      value={selectedEmoji}
-                      onChange={(e) => setSelectedEmoji(e.target.value)}
-                    >
-                      {QUICK_EMOJIS.map(em => (
-                        <option key={em} value={em}>{em}</option>
-                      ))}
-                    </select>
                   </div>
                   <button
                     type="submit"

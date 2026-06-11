@@ -172,27 +172,26 @@ export default function ExpensesPanel({
 
           {/* Category tabs/filter wrapper */}
           <div className="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
-            <span className="text-[10px] uppercase font-bold text-slate-400 mr-1.5 shrink-0">Categoría:</span>
             {[
               { id: 'all', label: 'Todos', icon: '🌍' },
-              { id: 'alimentacion', label: 'Falimentación', icon: '🍔' },
-              { id: 'hospedaje', label: 'Hospedaje', icon: '🏨' },
-              { id: 'transporte', label: 'Transporte', icon: '🚗' },
-              { id: 'lugares', label: 'Lugares', icon: '🎟️' },
+              { id: 'alimentacion', label: 'Comida', icon: '🍔' },
+              { id: 'hospedaje', label: 'Hotel', icon: '🏨' },
+              { id: 'transporte', label: 'Transp.', icon: '🚗' },
+              { id: 'lugares', label: 'Atrac.', icon: '🎟️' },
               { id: 'pago', label: 'Pagos', icon: '🤝' },
             ].map((cat) => (
               <button
                 key={cat.id}
                 id={`filter-cat-${cat.id}`}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all cursor-pointer ${
+                className={`px-2 py-1 rounded-lg text-[10px] font-bold shrink-0 transition-all cursor-pointer border ${
                   selectedCategory === cat.id
-                    ? 'bg-slate-800 text-white shadow-3xs'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-150'
+                    ? 'bg-slate-800 text-white border-slate-800 shadow-3xs'
+                    : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
                 }`}
               >
                 <span className="mr-1">{cat.icon}</span>
-                {cat.id === 'alimentacion' ? 'Comida' : cat.label}
+                {cat.label}
               </button>
             ))}
           </div>

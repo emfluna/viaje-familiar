@@ -17,7 +17,9 @@ import {
   Smile,
   Compass,
   Sparkles,
-  Calendar
+  Calendar,
+  X,
+  ShieldAlert
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -55,6 +57,49 @@ export default function ItineraryPanel({
   const [loadingAi, setLoadingAi] = useState<Record<string, boolean>>({});
   const [expandedRecommendations, setExpandedRecommendations] = useState<Record<string, boolean>>({});
   const [aiErrors, setAiErrors] = useState<Record<string, string>>({});
+  
+  // States for Global GPS discovery
+  const [nearbyRecommendations, setNearbyRecommendations] = useState<{ name: string; description: string; type: string }[]>([]);
+  const [loadingNearby, setLoadingNearby] = useState(false);
+  const [nearbyError, setNearbyError] = useState('');
+  const [showNearby, setShowNearby] = useState(false);
+
+  const fetchNearbyDiscovery = async () => {
+    setShowNearby(true);
+    if (nearbyRecommendations.length > 0) return;
+    
+    setLoadingNearby(true);
+    setNearbyError('');
+
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
+      });
+      
+      const response = await fetch('/api/recommendations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userLocation: {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          }
+        }),
+      });
+
+      if (!response.ok) throw new Error('Fallo al obtener destinos cercanos');
+      
+      const data = await response.json();
+      setNearbyRecommendations(data.recommendations || []);
+    } catch (err: any) {
+      console.error(err);
+      setNearbyError('Asegúrate de permitir el acceso a GPS para descubrir lugares cerca de ti.');
+    } finally {
+      setLoadingNearby(false);
+    }
+  };
 
   const fetchAiRecommendations = async (placeId: string, placeName: string, locName?: string) => {
     if (expandedRecommendations[placeId]) {
@@ -70,6 +115,19 @@ export default function ItineraryPanel({
 
     setLoadingAi(prev => ({ ...prev, [placeId]: true }));
     setAiErrors(prev => ({ ...prev, [placeId]: '' }));
+
+    let userLocation: { latitude: number; longitude: number } | null = null;
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
+      });
+      userLocation = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude
+      };
+    } catch (err) {
+      console.warn("Could not get location, continuing without it", err);
+    }
 
     // Fallback if offline
     if (!navigator.onLine) {
@@ -106,6 +164,7 @@ export default function ItineraryPanel({
         body: JSON.stringify({
           placeName,
           locationName: locName || '',
+          userLocation,
         }),
       });
 
@@ -305,23 +364,22 @@ export default function ItineraryPanel({
   return (
     <div className="bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden flex flex-col h-full">
       {/* Header */}
-      <div className="p-5 border-b border-slate-50 bg-gradient-to-br from-teal-50/20 to-indigo-50/10 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-teal-100/50 flex items-center justify-center text-teal-600">
+      <div className="p-3.5 border-b border-slate-50 bg-gradient-to-br from-teal-50/20 to-indigo-50/10 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-teal-100/50 flex items-center justify-center text-teal-600">
             <Compass className="w-5 h-5 text-teal-600" />
           </div>
           <div>
-            <h3 className="font-bold text-slate-800 text-sm font-display leading-tight">
-              Recorrido Turístico — Día {selectedDay.dayNumber}
+            <h3 className="font-bold text-slate-800 text-[13px] font-display leading-tight">
+              Día {selectedDay.dayNumber} — Itinerario
             </h3>
             
-            <div className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
-              <span>Fecha del Día:</span>
+            <div className="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
               <input
                 id={`input-day-date-${selectedDay.id}`}
                 type="date"
                 title="Editar fecha para este día de viaje"
-                className="px-2 py-0.5 border border-slate-200 hover:border-teal-400 rounded-md focus:ring-1 focus:ring-teal-500 focus:outline-none bg-white text-[11px] font-semibold text-teal-800 cursor-pointer transition-colors"
+                className="px-1.5 py-0.5 border border-slate-200 hover:border-teal-400 rounded-md focus:ring-1 focus:ring-teal-500 focus:outline-none bg-white text-[10px] font-semibold text-teal-800 cursor-pointer transition-colors"
                 value={selectedDay.date}
                 onChange={(e) => {
                   if (onUpdateDayDate && e.target.value) {
@@ -333,17 +391,95 @@ export default function ItineraryPanel({
           </div>
         </div>
 
-        <button
-          id={`btn-add-place-day-${selectedDay.id}`}
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="flex items-center gap-1 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition-all shadow-sm cursor-pointer ml-auto"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>Añadir Lugar</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            id={`btn-add-place-day-${selectedDay.id}`}
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="flex items-center gap-1 bg-teal-600 hover:bg-teal-700 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition-all shadow-sm cursor-pointer"
+          >
+            <Plus className="w-3 h-3" />
+            <span>Lugar</span>
+          </button>
+
+          <button
+            onClick={fetchNearbyDiscovery}
+            className="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition-all shadow-sm cursor-pointer"
+          >
+            <Sparkles className="w-3 h-3" />
+            <span>¿Qué hay cerca?</span>
+          </button>
+        </div>
       </div>
 
       <div className="p-5 flex-1 overflow-y-auto space-y-4">
+        {/* Global GPS Nearby Discovery Section */}
+        {showNearby && (
+          <div className="bg-indigo-50/40 rounded-2xl border border-indigo-100 p-4 space-y-3 animate-fade-in relative">
+            <button 
+              onClick={() => setShowNearby(false)}
+              className="absolute top-3 right-3 text-indigo-400 hover:text-indigo-600"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+            
+            <div className="flex items-center gap-2">
+              <Compass className="w-5 h-5 text-indigo-600" />
+              <h4 className="font-bold text-indigo-900 text-xs uppercase tracking-wider">Descubrimiento cercano (GPS Real)</h4>
+            </div>
+
+            {loadingNearby ? (
+              <div className="py-8 flex flex-col items-center justify-center gap-2">
+                <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                <span className="text-[10px] text-indigo-600 font-bold">Consultando a la IA sobre tu ubicación actual...</span>
+              </div>
+            ) : nearbyError ? (
+              <div className="p-3 text-[10px] text-rose-600 bg-rose-50 rounded-xl border border-rose-100 flex items-start gap-2">
+                <ShieldAlert className="w-4 h-4 shrink-0" />
+                <span>{nearbyError}</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {nearbyRecommendations.map((rec, idx) => (
+                  <div key={idx} className="bg-white border border-indigo-100 rounded-xl p-3 shadow-3xs flex flex-col justify-between group">
+                    <div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[11px] font-black text-indigo-900">{rec.name}</span>
+                        <span className="text-[8px] bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded border border-indigo-100 uppercase font-black">{rec.type}</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-1 line-clamp-2">{rec.description}</p>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between gap-2">
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(rec.name)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[9px] font-bold text-indigo-600 hover:underline"
+                      >
+                        Ver Mapa 🌐
+                      </a>
+                      <button
+                        onClick={() => {
+                          onAddPlace(selectedDay.id, {
+                            name: rec.name,
+                            description: rec.description,
+                            timeOfDay: 'Sugerido por IA',
+                            estimatedCost: 0,
+                            locationName: rec.name,
+                            locationUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(rec.name)}`
+                          });
+                        }}
+                        className="p-1 px-2 bg-indigo-50 text-indigo-700 rounded-lg text-[9px] font-bold hover:bg-indigo-100 transition-colors"
+                      >
+                        + Itinerario
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Statistics Bar for tourist places */}
         <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100 flex items-center justify-between">
           <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">

@@ -36,16 +36,28 @@ function getGeminiClient() {
 // API Route for Nearby Place Recommendations
 app.post("/api/recommendations", async (req, res) => {
   try {
-    const { placeName, locationName } = req.body;
-    if (!placeName) {
-      return res.status(400).json({ error: "El nombre de la atracción es requerido (placeName)" });
-    }
-
+    const { placeName, locationName, userLocation } = req.body;
+    
     const ai = getGeminiClient();
-    const prompt = `Como un guía turístico experto de clase mundial para la zona de ${locationName || 'los alrededores de ' + placeName}, sugiere exactamente 3 atracciones turísticas adicionales, miradores espectaculares, cafeterías hermosas, restaurantes locales o lugares hermosos muy cercanos a "${placeName}" (ubicado en ${locationName || 'su área'}).
-Estas recomendaciones deben ser muy cercanas físicamente, prácticas para complementar la visita a este lugar, atractivas para viajeros, y redactadas de forma impecable en español.
+    let prompt = "";
 
-Debes devolver obligatoriamente los resultados estructurados en formato JSON válido. La respuesta debe consistir de manera estricta de un único JSON array con la siguiente estructura de datos (3 objetos):
+    if (placeName) {
+      const locationContext = userLocation 
+        ? `(El usuario se encuentra actualmente en las coordenadas: ${userLocation.latitude}, ${userLocation.longitude})` 
+        : (locationName ? `(ubicado en ${locationName})` : `(cerca de ${placeName})`);
+        
+      prompt = `Como un guía turístico experto de clase mundial, sugiere exactamente 3 atracciones turísticas adicionales, miradores espectaculares, cafeterías hermosas, restaurantes locales o lugares hermosos muy cercanos a "${placeName}" ${locationContext}.
+Estas recomendaciones deben ser muy cercanas físicamente, prácticas para complementar la visita a este lugar, atractivas para viajeros, y redactadas de forma impecable en español.`;
+    } else if (userLocation) {
+      prompt = `Como un guía turístico experto de clase mundial, el usuario se encuentra actualmente en las coordenadas GPS: ${userLocation.latitude}, ${userLocation.longitude}. 
+Sugiere exactamente 5 atracciones turísticas imperdibles, monumentos, parques o lugares de interés que se encuentren muy cerca de esta ubicación exacta.
+Sé específico con los nombres y proporciona una descripción útil y cautivadora en español.`;
+    } else {
+      return res.status(400).json({ error: "Se requiere un lugar de referencia (placeName) o una ubicación GPS (userLocation)." });
+    }
+      
+    prompt += `
+Debes devolver obligatoriamente los resultados estructurados en formato JSON válido. La respuesta debe consistir de manera estricta de un único JSON array con la siguiente estructura de datos:
 [
   {
     "name": "Nombre exacto y cautivador del lugar sugerido",

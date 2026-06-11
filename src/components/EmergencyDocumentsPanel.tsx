@@ -16,6 +16,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import Avatar from './Avatar';
 
 interface EmergencyDocumentsPanelProps {
   friends: Friend[];
@@ -32,6 +33,12 @@ export default function EmergencyDocumentsPanel({
   const [base64File, setBase64File] = useState('');
   const [dragActive, setDragActive] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<{ name: string; value: string } | null>(null);
+
+  // Pagination for traveler list (5 per page)
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+  const totalPages = Math.ceil(friends.length / itemsPerPage);
+  const paginatedFriends = friends.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   // Active friend model reference
   const activeFriend = friends.find(f => f.id === selectedFriendId) || friends[0];
@@ -180,7 +187,7 @@ export default function EmergencyDocumentsPanel({
             <span>Seleccionar Viajero</span>
           </h3>
           <div className="space-y-2">
-            {friends.map((f) => {
+            {paginatedFriends.map((f) => {
               const docCount = f.documents?.length || 0;
               const hasCode = !!f.checkInCode;
               return (
@@ -194,9 +201,7 @@ export default function EmergencyDocumentsPanel({
                   }`}
                 >
                   <div className="flex items-center gap-2.5 truncate">
-                    <span className={`w-8 h-8 rounded-xl flex items-center justify-center text-base font-bold text-white shadow-xs ${f.avatarColor}`}>
-                      {f.avatarEmoji}
-                    </span>
+                    <Avatar friend={f} size="xs" className="w-8 h-8" />
                     <div className="truncate">
                       <span className="text-xs font-bold text-slate-700 block truncate">
                         {f.name}
@@ -218,6 +223,27 @@ export default function EmergencyDocumentsPanel({
               );
             })}
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-1 mt-4">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 disabled:opacity-30 cursor-pointer text-[10px] border border-slate-200"
+              >
+                ◀
+              </button>
+              <span className="text-[10px] font-bold text-slate-500 px-3">{currentPage} / {totalPages}</span>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 disabled:opacity-30 cursor-pointer text-[10px] border border-slate-200"
+              >
+                ▶
+              </button>
+            </div>
+          )}
 
           <div className="mt-5 p-3.5 bg-indigo-50/40 rounded-2xl border border-indigo-100 flex items-start gap-2.5">
             <ShieldAlert className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />

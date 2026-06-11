@@ -75,7 +75,7 @@ export default function DashboardCharts({ expenses, friends, currency }: Dashboa
   const maxContribution = Math.max(...participantContributions.map((p) => p.amount), 1);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 gap-6">
       {/* Box 1: Expenses by category */}
       <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs space-y-4">
         <div className="flex items-center gap-2 border-b border-slate-50 pb-3">
@@ -108,57 +108,6 @@ export default function DashboardCharts({ expenses, friends, currency }: Dashboa
                       className={`h-full ${cat.bgColor} rounded-full transition-all duration-500`}
                       style={{ width: `${cat.pct}%` }}
                     />
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
-
-      {/* Box 2: Total contribution per friend */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs space-y-4">
-        <div className="flex items-center gap-2 border-b border-slate-50 pb-3">
-          <TrendingUp className="w-5 h-5 text-teal-650" />
-          <div>
-            <h4 className="font-semibold text-slate-800 text-sm font-display">Financiamiento Aportado</h4>
-            <p className="text-xs text-slate-400">Quién ha desembolsado más dinero físico</p>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          {totalSpent === 0 ? (
-            <div className="py-8 text-center text-xs text-slate-400 italic">
-              Registra transacciones para monitorear aportes.
-            </div>
-          ) : (
-            participantContributions.map((contrib) => {
-              const barPct = (contrib.amount / maxContribution) * 100;
-              return (
-                <div key={contrib.id} className="flex items-center gap-3">
-                  {/* Friend Avatar */}
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-xs shrink-0 ${contrib.avatarColor}`}>
-                    {contrib.avatarEmoji}
-                  </div>
-
-                  {/* Graph bar line content */}
-                  <div className="flex-1 space-y-1 min-w-0 font-display">
-                    <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
-                      <span className="truncate">{contrib.name}</span>
-                      <span className="font-mono text-slate-800 font-bold shrink-0">
-                        {CURRENCY_SYMBOLS[currency]} {contrib.amount.toFixed(2)}
-                      </span>
-                    </div>
-
-                    <div className="h-2.5 w-full bg-slate-100 rounded-full flex items-center">
-                      <div
-                        className="h-full rounded-full transition-all duration-500 ease-out"
-                        style={{ 
-                          width: `${barPct}%`,
-                          backgroundColor: contrib.amount > 0 ? '#0d9488' : '#cbd5e1' 
-                        }}
-                      />
-                    </div>
                   </div>
                 </div>
               );

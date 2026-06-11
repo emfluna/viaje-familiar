@@ -4,12 +4,31 @@
  */
 
 import { Friend, TripDay, Expense, Currency } from './types';
+import peleImg from './assets/images/pele_avatar_1781135946987.png';
+import ronaldoImg from './assets/images/ronaldo_avatar_1781135961167.png';
+import ronaldinhoImg from './assets/images/ronaldinho_avatar_1781135971593.png';
+import kakaImg from './assets/images/kaka_avatar_1781135981414.png';
+import rivaldoImg from './assets/images/rivaldo_avatar_1781135994404.png';
+import neymarImg from './assets/images/neymar_avatar_1781138485257.png';
+import ronaldoCascaoImg from './assets/images/ronaldo_cascao_avatar_1781138905086.png';
+
+
+export const BRAZIL_PLAYERS = [
+  { name: 'Pelé', url: peleImg },
+  { name: 'Ronaldo', url: ronaldoImg },
+  { name: 'Ronaldo Cascão', url: ronaldoCascaoImg },
+  { name: 'Ronaldinho', url: ronaldinhoImg },
+  { name: 'Kaká', url: kakaImg },
+  { name: 'Rivaldo', url: rivaldoImg },
+  { name: 'Neymar', url: neymarImg },
+];
 
 export const INITIAL_FRIENDS: Friend[] = [
-  { id: 'u_1', name: 'Tú (Manuel)', avatarColor: 'bg-teal-500', avatarEmoji: '🎒' },
-  { id: 'u_2', name: 'Sofía', avatarColor: 'bg-rose-500', avatarEmoji: '🧘‍♀️' },
-  { id: 'u_3', name: 'Lucas', avatarColor: 'bg-indigo-500', avatarEmoji: '⚡' },
-  { id: 'u_4', name: 'Camila', avatarColor: 'bg-amber-500', avatarEmoji: '🎨' },
+  { id: 'u_1', name: 'Pelé', avatarColor: 'bg-teal-500', avatarUrl: peleImg },
+  { id: 'u_2', name: 'Ronaldo', avatarColor: 'bg-rose-500', avatarUrl: ronaldoCascaoImg },
+  { id: 'u_3', name: 'Ronaldinho', avatarColor: 'bg-indigo-500', avatarUrl: ronaldinhoImg },
+  { id: 'u_4', name: 'Kaká', avatarColor: 'bg-amber-500', avatarUrl: kakaImg },
+  { id: 'u_5', name: 'Rivaldo', avatarColor: 'bg-blue-500', avatarUrl: rivaldoImg },
 ];
 
 export const INITIAL_DAYS: TripDay[] = [
@@ -89,6 +108,7 @@ export const INITIAL_EXPENSES: Expense[] = [
       { friendId: 'u_2', amount: 90 },
       { friendId: 'u_3', amount: 90 },
       { friendId: 'u_4', amount: 90 },
+      { friendId: 'u_5', amount: 90 },
     ],
     isSettlement: false,
     notes: 'Alojamiento compartido con habitaciones dobles.',
@@ -97,7 +117,7 @@ export const INITIAL_EXPENSES: Expense[] = [
     id: 'exp_dinner_d1',
     tripDayId: 'day_1',
     description: 'Cena Tradicional - Tortillas & Parrilla',
-    amount: 88,
+    amount: 110,
     payerId: 'u_1', // Manuel (You) paid
     category: 'alimentacion',
     splits: [
@@ -105,6 +125,7 @@ export const INITIAL_EXPENSES: Expense[] = [
       { friendId: 'u_2', amount: 22 },
       { friendId: 'u_3', amount: 22 },
       { friendId: 'u_4', amount: 22 },
+      { friendId: 'u_5', amount: 22 },
     ],
     isSettlement: false,
     notes: 'Cena deliciosa el primer día de viaje.',
@@ -113,7 +134,7 @@ export const INITIAL_EXPENSES: Expense[] = [
     id: 'exp_tickets_d1',
     tripDayId: 'day_1',
     description: 'Entradas Ciudad Antigua (Lugar Turístico)',
-    amount: 60,
+    amount: 75,
     payerId: 'u_3', // Lucas pagó
     category: 'lugares',
     splits: [
@@ -121,6 +142,7 @@ export const INITIAL_EXPENSES: Expense[] = [
       { friendId: 'u_2', amount: 15 },
       { friendId: 'u_3', amount: 15 },
       { friendId: 'u_4', amount: 15 },
+      { friendId: 'u_5', amount: 15 },
     ],
     isSettlement: false,
     notes: 'Guiado oficial incluido por las ruinas.',
@@ -129,7 +151,7 @@ export const INITIAL_EXPENSES: Expense[] = [
     id: 'exp_taxi_d2',
     tripDayId: 'day_2',
     description: 'Transporte de Ida y Vuelta Playa Coral',
-    amount: 40,
+    amount: 50,
     payerId: 'u_4', // Camila pagó
     category: 'transporte',
     splits: [
@@ -137,6 +159,7 @@ export const INITIAL_EXPENSES: Expense[] = [
       { friendId: 'u_2', amount: 10 },
       { friendId: 'u_3', amount: 10 },
       { friendId: 'u_4', amount: 10 },
+      { friendId: 'u_5', amount: 10 },
     ],
     isSettlement: false,
     notes: 'Minivan privada para el traslado del grupo.',
@@ -152,12 +175,31 @@ export function getSavedState() {
     const savedCurrency = localStorage.getItem('travel_currency') as Currency | null;
     const savedBudgetLimit = localStorage.getItem('travel_budget_limit');
 
+    let friends = savedFriends ? JSON.parse(savedFriends) : INITIAL_FRIENDS;
+
+    // Migrate: Ensure friends have correct avatars from INITIAL_FRIENDS and assign player avatars if needed
+    friends = friends.map((f: Friend, index: number) => {
+      const initial = INITIAL_FRIENDS.find(i => i.id === f.id);
+      
+      // If friend is one of the initial players, force the initial avatar
+      if (initial) {
+        return { ...f, avatarUrl: initial.avatarUrl };
+      }
+      
+      // If friend is not initial, ensure they have one of the Brazil player avatars
+      // Use index to cycle through them
+      return { ...f, avatarUrl: BRAZIL_PLAYERS[index % BRAZIL_PLAYERS.length].url };
+    });
+
+    // Save back to localStorage if we migrated something (simple check)
+    saveState(friends, savedDays ? JSON.parse(savedDays) : INITIAL_DAYS, savedExpenses ? JSON.parse(savedExpenses) : INITIAL_EXPENSES, cachedUser || 'u_1', savedCurrency || 'BRL', savedBudgetLimit ? parseFloat(savedBudgetLimit) : 1200);
+
     return {
-      friends: savedFriends ? JSON.parse(savedFriends) : INITIAL_FRIENDS,
+      friends: friends,
       days: savedDays ? JSON.parse(savedDays) : INITIAL_DAYS,
       expenses: savedExpenses ? JSON.parse(savedExpenses) : INITIAL_EXPENSES,
       currentUserId: cachedUser || 'u_1',
-      currency: 'BRL',
+      currency: savedCurrency || 'BRL',
       budgetLimit: savedBudgetLimit ? parseFloat(savedBudgetLimit) : 1200,
     };
   } catch (e) {
