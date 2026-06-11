@@ -4,14 +4,15 @@ import { Friend } from '../types';
 interface AvatarProps {
   friend: Friend;
   className?: string; // Additional classes for the container
-  size?: 'xs' | 'sm' | 'md';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
 }
 
 export default function Avatar({ friend, className = '', size = 'md' }: AvatarProps) {
   const sizeClasses = {
-    xs: 'w-20 h-20 text-[20px]',
-    sm: 'w-24 h-24 text-2xl',
-    md: 'w-32 h-32 text-4xl',
+    xs: 'w-6 h-6 text-[10px]',
+    sm: 'w-8 h-8 text-[12px]',
+    md: 'w-10 h-10 text-[14px]',
+    lg: 'w-12 h-12 text-[16px]',
   };
 
   return (

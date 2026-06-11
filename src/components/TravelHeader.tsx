@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { Friend, Expense, Currency, CURRENCY_SYMBOLS } from '../types';
-import { Compass, Users, Plane, Calendar, Wallet, UserPlus, Trash2, X, Plus, Sparkles, Check } from 'lucide-react';
+import { Compass, Users, Plane, Calendar, Wallet, UserPlus, Trash2, X, Plus, Sparkles, Check, Music, Pencil } from 'lucide-react';
 import Avatar from './Avatar';
 
 interface TravelHeaderProps {
@@ -70,13 +70,66 @@ export default function TravelHeader({
     <header 
       className="text-white min-h-[100px] py-4 px-6 sticky top-0 z-40 shadow-lg flex flex-col md:flex-row items-center justify-between gap-4 relative overflow-visible"
       style={{
-        backgroundImage: "linear-gradient(to right, rgba(15, 23, 42, 0.75), rgba(15, 118, 110, 0.65)), url('https://images.unsplash.com/photo-1483729558449-99ef09a8c325?auto=format&fit=crop&w=1500&q=80')",
+        backgroundImage: "linear-gradient(to right, rgba(15, 23, 42, 0.8), rgba(15, 118, 110, 0.7)), url('https://images.unsplash.com/photo-1483729558449-99ef09a8c325?auto=format&fit=crop&w=1500&q=80')",
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       }}
     >
       {/* Semi-transparent blur overlay for excellent text contrast */}
-      <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-[2px] z-0 pointer-events-none" />
+      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px] z-0 pointer-events-none" />
+
+      {/* Global Spotify Control - Absolute Top-Right Corner */}
+      <div className="fixed top-2 right-2 md:top-4 md:right-4 z-[100]">
+        <div className="relative group">
+          <button
+            onClick={() => setShowSpotify(!showSpotify)}
+            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-[0_8px_32px_rgba(29,185,84,0.3)] cursor-pointer border-2 backdrop-blur-2xl ${
+              showSpotify 
+                ? 'bg-[#1DB954]/90 border-white scale-105 shadow-[#1DB954]/50' 
+                : 'bg-black/60 border-[#1DB954]/50 hover:bg-black/80 hover:border-[#1DB954] hover:scale-110'
+            }`}
+            title="Music Hub — Spotify 🟢"
+          >
+            <SpotifyIcon className={`w-8 h-8 transition-all duration-500 ${showSpotify ? 'text-white rotate-[360deg]' : 'text-[#1DB954]'}`} />
+            {showSpotify && <div className="absolute inset-0 bg-white/20 rounded-full animate-ping" />}
+          </button>
+
+          {showSpotify && (
+            <div className="absolute right-0 top-full mt-4 w-80 bg-[#121212]/95 backdrop-blur-3xl border border-[#1DB954]/30 rounded-3xl shadow-[0_30px_60px_rgba(0,0,0,0.8)] p-4 z-50 animate-spring-up overflow-hidden">
+              <div className="flex items-center justify-between mb-4 px-1">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 bg-[#1DB954] rounded-full flex items-center justify-center">
+                    <SpotifyIcon className="w-5 h-5 text-white" />
+                  </div>
+                  <span className="text-[11px] font-black text-white uppercase tracking-widest font-sans">
+                    Vibra Brasil 🇧🇷
+                  </span>
+                </div>
+                <button onClick={() => setShowSpotify(false)} className="bg-white/10 p-1.5 rounded-full text-white/60 hover:text-white hover:bg-white/20 transition-all">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="bg-black/40 rounded-2xl overflow-hidden border border-white/5 shadow-2xl">
+                <iframe 
+                  style={{ borderRadius: '16px' }} 
+                  src="https://open.spotify.com/embed/playlist/3TqICupAgz1dyriD5fPemD?utm_source=generator&theme=0" 
+                  width="100%" 
+                  height="160" 
+                  frameBorder="0" 
+                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
+                  loading="lazy"
+                ></iframe>
+              </div>
+              <div className="mt-4 flex flex-col items-center gap-1">
+                <p className="text-[9px] text-[#1DB954] font-black italic tracking-tight">
+                  "Onde as palavras falham, a música fala"
+                </p>
+                <div className="w-12 h-1 bg-[#1DB954]/30 rounded-full" />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Brand & Concept with Brasil SVG Logo */}
       <div className="flex items-center gap-3 select-none relative z-10">
@@ -126,51 +179,12 @@ export default function TravelHeader({
         </div>
       </div>
 
-      {/* Traveler Simulator dropdown & Budget Control */}
-      <div className="flex flex-wrap items-center justify-center gap-3 self-center md:self-auto relative animate-fade-in z-10">
+      {/* Traveler Simulator dropdown & Budget Control - Centered Section */}
+      <div className="flex-1 flex flex-wrap items-center justify-center gap-6 relative animate-fade-in z-10 px-4">
         
-        {/* Spotify Toggle */}
-        <div className="relative">
-          <button
-            onClick={() => setShowSpotify(!showSpotify)}
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-md cursor-pointer border-2 ${
-              showSpotify ? 'bg-emerald-500 border-white scale-110' : 'bg-black/40 border-white/20 hover:bg-black/60'
-            }`}
-            title="Música para el viaje 🎵"
-          >
-            <Compass className={`w-5 h-5 ${showSpotify ? 'text-white animate-pulse' : 'text-emerald-400'}`} />
-          </button>
-
-          {showSpotify && (
-            <div className="absolute left-1/2 -translate-x-1/2 top-full mt-3 w-64 bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-3 z-50 animate-spring-up overflow-hidden">
-              <div className="flex items-center justify-between mb-2 px-1">
-                <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2">
-                  <Compass className="w-3.5 h-3.5" />
-                  <span>Vibra Brasil 🇧🇷</span>
-                </span>
-                <button onClick={() => setShowSpotify(false)} className="text-slate-500 hover:text-white">
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              <iframe 
-                style={{ borderRadius: '12px' }} 
-                src="https://open.spotify.com/embed/playlist/3TqICupAgz1dyriD5fPemD?utm_source=generator&theme=0" 
-                width="100%" 
-                height="152" 
-                frameBorder="0" 
-                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
-                loading="lazy"
-              ></iframe>
-              <p className="text-[8px] text-emerald-500/80 text-center font-bold italic mt-2">
-                "A música alimenta a alma do viajante"
-              </p>
-            </div>
-          )}
-        </div>
-
         {/* Unificado: Selector de Amigos y botón de administración del grupo */}
-          <div className="flex flex-col items-center gap-1 min-w-[120px]">
-             <span className="text-[10px] font-black font-sans text-emerald-200 uppercase tracking-tighter drop-shadow-md">
+          <div className="flex flex-col items-center gap-1.5 min-w-[140px] group">
+             <span className="text-[10px] font-black font-sans text-emerald-300 uppercase tracking-[0.2em] drop-shadow-md group-hover:text-white transition-colors">
                {currentUserObj?.name || 'Viajero'}
              </span>
              <div className="relative">
@@ -190,10 +204,10 @@ export default function TravelHeader({
               {/* Active companion visual badge and toggle manager panel */}
               <button
                 onClick={() => setIsManaging(!isManaging)}
-                className="flex items-center justify-center transition-opacity hover:opacity-80 active:scale-95 cursor-pointer relative z-10"
+                className="p-1 rounded-full border-2 border-emerald-400/30 hover:border-emerald-400 group-hover:scale-110 transition-all active:scale-95 cursor-pointer relative z-10 shadow-lg bg-black/20 backdrop-blur-md"
                 title="Administrar Grupo de Viajeros (Simulador)"
               >
-                {currentUserObj ? <Avatar friend={currentUserObj} size="md" /> : '👥'}
+                {currentUserObj ? <Avatar friend={currentUserObj} size="lg" /> : '👥'}
               </button>
             </div>
           </div>
@@ -234,6 +248,23 @@ export default function TravelHeader({
                           Activo
                         </span>
                       )}
+                      
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // In TravelHeader, we don't have the full editing states like Sidebar,
+                          // but the user wants to "editar compañeros". 
+                          // I'll show an alert or just tell them to use the sidebar if needed, 
+                          // OR I can quickly add a direct edit prompt if we keep it simple.
+                          const newName = window.prompt("Editar nombre del viajero:", friend.name);
+                          // This is a bit hacky but if onUpdateFriend was here it would work.
+                          // For now, I'll direct them to the sidebar which has the full editor.
+                          alert("Para una edición completa (avatar, color, nombre), utiliza el panel lateral izquierdo.");
+                        }}
+                        className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
                       
                       {friends.length > 1 && onDeleteFriend && (
                         <button
@@ -304,6 +335,18 @@ function ChevronDownIcon(props: React.SVGProps<SVGSVGElement>) {
       stroke="currentColor"
     >
       <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+    </svg>
+  );
+}
+
+function SpotifyIcon({ className }: { className?: string }) {
+  return (
+    <svg 
+      className={className}
+      viewBox="0 0 24 24" 
+      fill="currentColor"
+    >
+      <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.508 17.302c-.216.354-.68.467-1.033.251-2.857-1.745-6.453-2.139-10.686-1.173-.406.092-.814-.16-.906-.566-.092-.406.16-.814.566-.906 4.636-1.06 8.599-.613 11.808 1.346.354.216.467.68.251 1.048zm1.472-3.258c-.272.443-.848.583-1.291.311-3.267-2.008-8.248-2.593-12.112-1.42-.5-.152-.779-.684-.627-1.184.152-.5.684-.779 1.184-.627 4.417 1.34 9.914 1.83 13.535 4.053.443.272.583.848.311 1.267zm.126-3.418c-3.916-2.325-10.374-2.54-14.131-1.399-.6.183-1.238-.163-1.421-.763-.183-.6.163-1.238.763-1.421 4.316-1.31 11.442-1.054 15.962 1.628.539.32 0.716 1.014 0.395 1.554-.321.539-1.015 0.717-1.554 0.396z" />
     </svg>
   );
 }

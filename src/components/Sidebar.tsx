@@ -13,7 +13,6 @@ import {
   UserPlus, 
   X, 
   ArrowRight,
-  Compass,
   Trophy,
   Pencil,
   Trash2,
@@ -106,10 +105,15 @@ export default function Sidebar({
   };
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('es-ES', {
-      day: 'numeric',
-      month: 'short',
-    });
+    try {
+      const date = new Date(dateStr);
+      const day = date.getDate().toString().padStart(2, '0');
+      const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+      const month = monthNames[date.getMonth()];
+      return `${day}/${month}`;
+    } catch {
+      return dateStr;
+    }
   };
 
   return (
@@ -135,30 +139,6 @@ export default function Sidebar({
       
       {/* Main List */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        
-        {/* SPOTIFY PLAYLIST INTEGRATION */}
-        <div className="bg-emerald-50/40 border border-emerald-100 rounded-2xl p-3 space-y-2 mb-2">
-          <div className="flex items-center justify-between">
-            <span className="text-[9px] font-black text-emerald-700 uppercase tracking-widest flex items-center gap-1.5">
-              <Compass className="w-3 h-3" />
-              <span>Vibra Brasil 🇧🇷</span>
-            </span>
-          </div>
-          <div className="rounded-xl overflow-hidden shadow-2xs border border-emerald-100/50">
-            <iframe 
-              style={{ borderRadius: '8px' }} 
-              src="https://open.spotify.com/embed/playlist/3TqICupAgz1dyriD5fPemD?utm_source=generator&theme=0" 
-              width="100%" 
-              height="80" 
-              frameBorder="0" 
-              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
-              loading="lazy"
-            ></iframe>
-          </div>
-          <p className="text-[8px] text-emerald-600/70 text-center font-bold italic">
-            Dale play para ambientar tu viaje
-          </p>
-        </div>
         
         {/* DAYS / CALENDAR SECTION */}
         <div className="space-y-3">
@@ -219,28 +199,28 @@ export default function Sidebar({
                       </div>
                       
                       <div className="text-left truncate">
-                        {onUpdateDayDate ? (
-                          <div 
-                            className="flex items-center gap-1 mt-0.5"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <input
-                              type="date"
-                              title="Haz clic para cambiar la fecha de este día"
-                              className="text-[10px] font-semibold text-slate-550 bg-slate-50 hover:bg-teal-50 hover:text-teal-700 border border-slate-200/80 rounded-md px-1.5 py-0.5 transition-all cursor-pointer font-sans"
-                              value={day.date}
-                              onChange={(e) => {
-                                if (e.target.value) {
-                                  onUpdateDayDate(day.id, e.target.value);
-                                }
-                              }}
-                            />
-                          </div>
-                        ) : (
-                          <span className="text-xs text-slate-400 font-medium block">
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[11px] font-bold text-slate-400 bg-slate-100/50 px-1.5 py-0.5 rounded border border-slate-200/50 uppercase tracking-tighter">
                             {formatDate(day.date)}
                           </span>
-                        )}
+                          {onUpdateDayDate && (
+                            <div className="relative group/date">
+                              <input
+                                type="date"
+                                title="Cambiar fecha (2026)"
+                                className="absolute inset-0 opacity-0 cursor-pointer z-10 w-full h-full"
+                                value={day.date}
+                                onChange={(e) => {
+                                  if (e.target.value) {
+                                    onUpdateDayDate(day.id, e.target.value);
+                                  }
+                                }}
+                              />
+                              <Calendar className="w-3 h-3 text-slate-350 hover:text-teal-600 transition-colors" />
+                            </div>
+                          )}
+                        </div>
+
                         <span className="text-xs font-semibold block truncate mt-1">
                           {placeCount === 0 
                             ? 'Sin lugares turísticos' 
@@ -289,38 +269,38 @@ export default function Sidebar({
             {friends.map((friend) => {
               const isCurrentUser = friend.id === currentUserId;
               return (
-                <div
-                  key={friend.id}
-                  onClick={() => {
-                    onSetActiveTab('documents');
-                    onClose?.();
-                  }}
-                  className="flex items-center justify-between px-1.5 py-1 rounded-md text-[11px] border border-slate-105 bg-slate-50/50 hover:bg-slate-55 transition-colors group cursor-pointer"
-                >
-                  <div className="flex items-center gap-1.5 truncate">
-                    <Avatar friend={friend} size="xs" />
-                    <span className="font-semibold text-slate-700 truncate">
-                      {friend.name} {isCurrentUser && <span className="text-slate-400 text-[10px] font-normal italic">(Tú)</span>}
-                    </span>
-                  </div>
-
-                  <button
-                    id={`btn-edit-friend-${friend.id}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingFriend(friend);
-                      setEditName(friend.name);
-                      setEditColor(friend.avatarColor || 'bg-teal-500');
-                      setEditAvatarUrl(friend.avatarUrl || '');
-                      setShowConfirmDelete(false);
-                      setDeleteError('');
+                  <div
+                    key={friend.id}
+                    className="flex items-center justify-between px-1.5 py-1.5 rounded-xl text-[11px] border border-slate-105 bg-white hover:bg-teal-50/30 transition-all group cursor-pointer shadow-3xs"
+                    onClick={() => {
+                      onSetActiveTab('documents');
+                      onClose?.();
                     }}
-                    className="p-0.5 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 cursor-pointer"
-                    title="Editar datos del viajero"
                   >
-                    <Pencil className="w-3 h-3" />
-                  </button>
-                </div>
+                    <div className="flex items-center gap-2 truncate">
+                      <Avatar friend={friend} size="xs" />
+                      <span className={`font-bold truncate ${isCurrentUser ? 'text-teal-700' : 'text-slate-700'}`}>
+                        {friend.name}
+                      </span>
+                    </div>
+
+                    <button
+                      id={`btn-edit-friend-${friend.id}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingFriend(friend);
+                        setEditName(friend.name);
+                        setEditColor(friend.avatarColor || 'bg-teal-500');
+                        setEditAvatarUrl(friend.avatarUrl || '');
+                        setShowConfirmDelete(false);
+                        setDeleteError('');
+                      }}
+                      className="p-1 px-2 border border-slate-200 text-slate-400 hover:text-teal-600 hover:bg-white rounded-lg transition-all opacity-100 md:opacity-0 group-hover:opacity-100 focus:opacity-100 cursor-pointer shadow-4xs"
+                      title="Editar datos del viajero"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                  </div>
               );
             })}
           </div>

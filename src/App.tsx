@@ -230,6 +230,25 @@ export default function App() {
     updateStateAndSave(friends, nextDays, expenses, currentUserId);
   };
 
+  // Update existing tourist point
+  const handleUpdatePlace = (dayId: string, placeId: string, updatedData: Partial<TouristPlace>) => {
+    const nextDays = days.map((day) => {
+      if (day.id === dayId) {
+        return {
+          ...day,
+          touristPlaces: day.touristPlaces.map((p) => {
+            if (p.id === placeId) {
+              return { ...p, ...updatedData };
+            }
+            return p;
+          }),
+        };
+      }
+      return day;
+    });
+    updateStateAndSave(friends, nextDays, expenses, currentUserId);
+  };
+
   // Remove planned tourist point
   const handleRemovePlace = (dayId: string, placeId: string) => {
     const nextDays = days.map((day) => {
@@ -459,6 +478,7 @@ export default function App() {
                     selectedDay={activeDayObj}
                     onToggleVisited={handleToggleVisited}
                     onAddPlace={handleAddPlace}
+                    onUpdatePlace={handleUpdatePlace}
                     onRemovePlace={handleRemovePlace}
                     currency={currency}
                     onUpdateDayDate={handleUpdateDayDate}

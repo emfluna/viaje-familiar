@@ -19,7 +19,8 @@ import {
   Sparkles,
   Calendar,
   X,
-  ShieldAlert
+  ShieldAlert,
+  Pencil
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -28,6 +29,7 @@ interface ItineraryPanelProps {
   selectedDay: TripDay | undefined;
   onToggleVisited: (dayId: string, placeId: string) => void;
   onAddPlace: (dayId: string, place: Omit<TouristPlace, 'id' | 'isVisited'>) => void;
+  onUpdatePlace: (dayId: string, placeId: string, updatedData: Partial<TouristPlace>) => void;
   onRemovePlace: (dayId: string, placeId: string) => void;
   currency: Currency;
   onUpdateDayDate?: (dayId: string, newDate: string) => void;
@@ -38,11 +40,13 @@ export default function ItineraryPanel({
   selectedDay,
   onToggleVisited,
   onAddPlace,
+  onUpdatePlace,
   onRemovePlace,
   currency,
   onUpdateDayDate,
 }: ItineraryPanelProps) {
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingPlace, setEditingPlace] = useState<TouristPlace | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [timeOfDay, setTimeOfDay] = useState('10:00');
@@ -299,7 +303,14 @@ export default function ItineraryPanel({
                 <div key={day.id} className="border border-slate-105 rounded-2xl p-4 bg-white hover:border-slate-200 transition-colors shadow-3xs">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-800 font-display">
-                      Día {day.dayNumber} — {day.date}
+                      Día {day.dayNumber} — {(() => {
+                        try {
+                          const d = new Date(day.date);
+                          const dd = d.getDate().toString().padStart(2, '0');
+                          const mm = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"][d.getMonth()];
+                          return `${dd}/${mm}`;
+                        } catch { return day.date; }
+                      })()}
                     </span>
                     <span className="text-[10px] font-bold bg-slate-100 text-slate-550 rounded-md px-2 py-0.5">
                       {day.touristPlaces.length} lugares
@@ -338,14 +349,26 @@ export default function ItineraryPanel({
     e.preventDefault();
     if (!name.trim()) return;
     
-    onAddPlace(selectedDay.id, {
-      name: name.trim(),
-      description: description.trim(),
-      timeOfDay: timeOfDay || 'Todo el día',
-      estimatedCost: parseFloat(estimatedCost) || 0,
-      locationName: locationName.trim(),
-      locationUrl: locationUrl.trim(),
-    });
+    if (editingPlace && selectedDay) {
+      onUpdatePlace(selectedDay.id, editingPlace.id, {
+        name: name.trim(),
+        description: description.trim(),
+        timeOfDay: timeOfDay || 'Todo el día',
+        estimatedCost: parseFloat(estimatedCost) || 0,
+        locationName: locationName.trim(),
+        locationUrl: locationUrl.trim(),
+      });
+      setEditingPlace(null);
+    } else if (selectedDay) {
+      onAddPlace(selectedDay.id, {
+        name: name.trim(),
+        description: description.trim(),
+        timeOfDay: timeOfDay || 'Todo el día',
+        estimatedCost: parseFloat(estimatedCost) || 0,
+        locationName: locationName.trim(),
+        locationUrl: locationUrl.trim(),
+      });
+    }
 
     setName('');
     setDescription('');
@@ -374,19 +397,35 @@ export default function ItineraryPanel({
               Día {selectedDay.dayNumber} — Itinerario
             </h3>
             
-            <div className="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
-              <input
-                id={`input-day-date-${selectedDay.id}`}
-                type="date"
-                title="Editar fecha para este día de viaje"
-                className="px-1.5 py-0.5 border border-slate-200 hover:border-teal-400 rounded-md focus:ring-1 focus:ring-teal-500 focus:outline-none bg-white text-[10px] font-semibold text-teal-800 cursor-pointer transition-colors"
-                value={selectedDay.date}
-                onChange={(e) => {
-                  if (onUpdateDayDate && e.target.value) {
-                    onUpdateDayDate(selectedDay.id, e.target.value);
-                  }
-                }}
-              />
+            <div className="text-[10px] text-slate-500 flex items-center gap-1.5 mt-0.5">
+              <div className="flex items-center gap-1 bg-slate-100/80 px-2 py-0.5 rounded-md border border-slate-200/50">
+                <span className="font-bold text-slate-500 tracking-tighter">
+                  {(() => {
+                    try {
+                      const date = new Date(selectedDay.date);
+                      const day = date.getDate().toString().padStart(2, '0');
+                      const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+                      return `${day}/${months[date.getMonth()]}`;
+                    } catch { return selectedDay.date; }
+                  })()}
+                </span>
+                {onUpdateDayDate && (
+                  <div className="relative w-3.5 h-3.5 ml-0.5">
+                    <input
+                      type="date"
+                      title="Cambiar fecha del día"
+                      className="absolute inset-0 opacity-0 cursor-pointer z-10 w-full h-full"
+                      value={selectedDay.date}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          onUpdateDayDate(selectedDay.id, e.target.value);
+                        }
+                      }}
+                    />
+                    <Pencil className="w-3 h-3 text-slate-400 group-hover:text-teal-600 transition-colors" />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -573,21 +612,31 @@ export default function ItineraryPanel({
           </div>
         )}
 
-        {/* Create Place Form inline */}
-        {showAddForm && (
+        {/* Create / Edit Place Form inline */}
+        {(showAddForm || editingPlace) && (
           <motion.form
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
-            className="p-4 bg-teal-50/40 rounded-2xl border border-teal-100/80 space-y-3 overflow-hidden"
+            className={`p-4 rounded-2xl border space-y-3 overflow-hidden ${editingPlace ? 'bg-indigo-50/40 border-indigo-100' : 'bg-teal-50/40 border-teal-100/80'}`}
             onSubmit={handleFormSubmit}
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-teal-800 flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5" /> Nueva Parada Turística
+              <span className={`text-xs font-bold flex items-center gap-1 ${editingPlace ? 'text-indigo-800' : 'text-teal-800'}`}>
+                {editingPlace ? <Pencil className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
+                {editingPlace ? `Editando: ${editingPlace.name}` : 'Nueva Parada Turística'}
               </span>
               <button
                 type="button"
-                onClick={() => setShowAddForm(false)}
+                onClick={() => {
+                  setShowAddForm(false);
+                  setEditingPlace(null);
+                  setName('');
+                  setDescription('');
+                  setTimeOfDay('10:00');
+                  setEstimatedCost('0');
+                  setLocationName('');
+                  setLocationUrl('');
+                }}
                 className="text-[10px] text-slate-400 hover:text-slate-600"
               >
                 Cerrar
@@ -723,14 +772,35 @@ export default function ItineraryPanel({
                       {place.name}
                     </span>
                     
-                    <button
-                      id={`btn-remove-place-${place.id}`}
-                      onClick={() => onRemovePlace(selectedDay.id, place.id)}
-                      className="p-1 hover:bg-rose-50 text-slate-300 hover:text-rose-500 rounded-md transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
-                      title="Eliminar parada turística"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        id={`btn-edit-place-${place.id}`}
+                        onClick={() => {
+                          setEditingPlace(place);
+                          setName(place.name);
+                          setDescription(place.description || '');
+                          setTimeOfDay(place.timeOfDay || '10:00');
+                          setEstimatedCost(place.estimatedCost.toString());
+                          setLocationName(place.locationName || '');
+                          setLocationUrl(place.locationUrl || '');
+                          setShowAddForm(false);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="p-1 hover:bg-indigo-50 text-slate-300 hover:text-indigo-600 rounded-md transition-colors cursor-pointer"
+                        title="Editar parada"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
+
+                      <button
+                        id={`btn-remove-place-${place.id}`}
+                        onClick={() => onRemovePlace(selectedDay.id, place.id)}
+                        className="p-1 hover:bg-rose-50 text-slate-300 hover:text-rose-500 rounded-md transition-colors cursor-pointer"
+                        title="Eliminar parada turística"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
 
                   {place.description && (
